@@ -55,13 +55,15 @@ export function getDemoExperience(tagCode: string): TableExperience {
       const [startHour, startMinute] = window.startsAt.split(":").map(Number);
       const [endHour, endMinute] = window.endsAt.split(":").map(Number);
       return time >= startHour * 60 + startMinute && time <= endHour * 60 + endMinute;
-    }) ?? mealWindows[1];
-  const items = weeklyMenus.weekday[meal.name].map(([name, category, imageUrl], index) => ({
-    id: "demo-item-" + index,
-    name,
-    category,
-    imageUrl,
-  }));
+    }) ?? null;
+  const items = meal
+    ? weeklyMenus.weekday[meal.name].map(([name, category, imageUrl], index) => ({
+        id: "demo-item-" + index,
+        name,
+        category,
+        imageUrl,
+      }))
+    : [];
   const tableMatch = tagCode.match(/\d+/);
 
   return {
@@ -72,7 +74,7 @@ export function getDemoExperience(tagCode: string): TableExperience {
     timezone,
     serviceDate: parts.year + "-" + parts.month + "-" + parts.day,
     meal,
-    menuId: "demo-menu-" + meal.name.toLowerCase(),
+    menuId: meal ? "demo-menu-" + meal.name.toLowerCase() : null,
     items,
     isDemo: true,
   };
