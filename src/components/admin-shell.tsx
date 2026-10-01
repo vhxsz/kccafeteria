@@ -39,8 +39,8 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           {navigation.map((item) => {
             const active =
               !item.href.includes("#") &&
-              (item.href === "/"
-                ? pathname === "/"
+              (item.href === "/" || item.href === "/admin"
+                ? pathname === item.href
                 : pathname === item.href || pathname.startsWith(item.href + "/"));
             return (
               <Link
