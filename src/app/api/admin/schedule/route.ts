@@ -126,7 +126,7 @@ export async function PUT(request: Request) {
             service_date: serviceDate,
             service_starts_at: customTime?.startsAt || mealPeriod.starts_at,
             service_ends_at: customTime?.endsAt || mealPeriod.ends_at,
-            published: true,
+            published: dishIds.length > 0,
           },
           { onConflict: "cafeteria_id,meal_period_id,service_date" },
         )

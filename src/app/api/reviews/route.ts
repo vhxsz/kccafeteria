@@ -49,11 +49,35 @@ export async function POST(request: NextRequest) {
   });
 
   if (error) {
-    const message =
-      error.message.includes("review_limit_reached")
-        ? "You have already submitted feedback for this meal."
-        : "We could not save your feedback. Please try again.";
-    return Response.json({ error: message }, { status: 422 });
+    if (error.message.includes("review_limit_reached")) {
+      return Response.json(
+        { error: "You have already submitted feedback for this meal.", code: "review_limit_reached" },
+        { status: 429 },
+      );
+    }
+    if (
+      error.message.includes("inactive_or_invalid_meal") ||
+      error.message.includes("food_not_in_menu")
+    ) {
+      return Response.json(
+        {
+          error: "The menu changed while this page was open. Refresh the page and try again.",
+          code: "stale_menu",
+        },
+        { status: 409 },
+      );
+    }
+    if (error.message.includes("duplicate key")) {
+      return Response.json(
+        { error: "This feedback has already been submitted.", code: "duplicate_review" },
+        { status: 409 },
+      );
+    }
+    console.error("Unable to save public review:", error.message);
+    return Response.json(
+      { error: "We could not save your feedback. Please try again.", code: "review_failed" },
+      { status: 422 },
+    );
   }
 
   return Response.json({ accepted: true }, { status: 201 });
