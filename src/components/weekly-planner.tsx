@@ -155,6 +155,15 @@ export function WeeklyPlanner() {
   const [search, setSearch] = useState("");
   const [showDishForm, setShowDishForm] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [dishImagePreview, setDishImagePreview] = useState("");
+  const [dishFormError, setDishFormError] = useState("");
+  const [isCreatingDish, setIsCreatingDish] = useState(false);
+
+  useEffect(() => {
+    return () => {
+      if (dishImagePreview) URL.revokeObjectURL(dishImagePreview);
+    };
+  }, [dishImagePreview]);
 
   useEffect(() => {
     if (
@@ -302,70 +311,104 @@ export function WeeklyPlanner() {
     const form = new FormData(formElement);
     const name = String(form.get("name") || "").trim();
     if (!name) return;
-    let dish: Dish = {
-      id: crypto.randomUUID(),
-      name,
-      category: String(form.get("category") || "Other"),
-      imageUrl:
-        String(form.get("imageUrl") || "").trim() ||
-        "https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=640&q=80",
-      description: String(form.get("description") || "").trim(),
-      ingredients: String(form.get("ingredients") || "").split(",").map((item) => item.trim()).filter(Boolean),
-      allergens: form.getAll("allergens").map(String),
-      dietaryInformation: form.getAll("dietaryInformation").map(String),
-      servingSize: String(form.get("servingSize") || "").trim(),
-    };
-
-    if (
-      process.env.NEXT_PUBLIC_SUPABASE_URL &&
-      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
-    ) {
-      const categoryValues: Record<string, string> = {
-        "Main dish": "main_dish",
-        Side: "side",
-        Vegetable: "salad",
-        Fruit: "fruit",
-        Dessert: "dessert",
-        Drink: "drink",
-        Other: "other",
-      };
-      const response = await fetch("/api/admin/dishes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: dish.name,
-          category: categoryValues[dish.category] || "other",
-          imageUrl: String(form.get("imageUrl") || "").trim(),
-          description: dish.description,
-          ingredients: dish.ingredients,
-          allergens: dish.allergens,
-          dietaryInformation: dish.dietaryInformation,
-          servingSize: dish.servingSize,
-        }),
-      });
-      const payload = (await response.json()) as {
-        dish?: {
-          id: string; name: string; category: string; image_url: string | null;
-          description: string | null; ingredients: string[]; allergens: string[];
-          dietary_information: string[]; serving_size: string | null;
-        };
-      };
-      if (!response.ok || !payload.dish) return;
-      dish = {
-        id: payload.dish.id,
-        name: payload.dish.name,
-        category: Object.entries(categoryValues).find(([, value]) => value === payload.dish?.category)?.[0] || dish.category,
-        imageUrl: payload.dish.image_url || dish.imageUrl,
-        description: payload.dish.description || "",
-        ingredients: payload.dish.ingredients || [],
-        allergens: payload.dish.allergens || [],
-        dietaryInformation: payload.dish.dietary_information || [],
-        servingSize: payload.dish.serving_size || "",
-      };
+    const image = form.get("image");
+    if (!(image instanceof File) || image.size === 0) {
+      setDishFormError("Please choose a photo for this dish.");
+      return;
     }
-    setDishes((current) => [...current, dish]);
-    setShowDishForm(false);
-    formElement.reset();
+    if (!["image/jpeg", "image/png", "image/webp"].includes(image.type)) {
+      setDishFormError("Use a JPEG, PNG, or WebP image.");
+      return;
+    }
+    if (image.size > 4 * 1024 * 1024) {
+      setDishFormError("The photo must be smaller than 4 MB.");
+      return;
+    }
+
+    setIsCreatingDish(true);
+    setDishFormError("");
+    try {
+      let dish: Dish = {
+        id: crypto.randomUUID(),
+        name,
+        category: String(form.get("category") || "Other"),
+        imageUrl: dishImagePreview,
+        description: String(form.get("description") || "").trim(),
+        ingredients: String(form.get("ingredients") || "").split(",").map((item) => item.trim()).filter(Boolean),
+        allergens: form.getAll("allergens").map(String),
+        dietaryInformation: form.getAll("dietaryInformation").map(String),
+        servingSize: String(form.get("servingSize") || "").trim(),
+      };
+
+      if (
+        process.env.NEXT_PUBLIC_SUPABASE_URL &&
+        process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+      ) {
+        const categoryValues: Record<string, string> = {
+          "Main dish": "main_dish",
+          Side: "side",
+          Vegetable: "salad",
+          Fruit: "fruit",
+          Dessert: "dessert",
+          Drink: "drink",
+          Other: "other",
+        };
+        const requestBody = new FormData();
+        requestBody.set("name", dish.name);
+        requestBody.set("category", categoryValues[dish.category] || "other");
+        requestBody.set("image", image);
+        requestBody.set("description", dish.description);
+        requestBody.set("ingredients", JSON.stringify(dish.ingredients));
+        requestBody.set("allergens", JSON.stringify(dish.allergens));
+        requestBody.set("dietaryInformation", JSON.stringify(dish.dietaryInformation));
+        requestBody.set("servingSize", dish.servingSize);
+        const response = await fetch("/api/admin/dishes", {
+          method: "POST",
+          body: requestBody,
+        });
+        const payload = (await response.json()) as {
+          error?: string;
+          dish?: {
+            id: string; name: string; category: string; image_url: string | null;
+            description: string | null; ingredients: string[]; allergens: string[];
+            dietary_information: string[]; serving_size: string | null;
+          };
+        };
+        if (!response.ok || !payload.dish) {
+          setDishFormError(payload.error || "Unable to create this dish.");
+          return;
+        }
+        dish = {
+          id: payload.dish.id,
+          name: payload.dish.name,
+          category: Object.entries(categoryValues).find(([, value]) => value === payload.dish?.category)?.[0] || dish.category,
+          imageUrl: payload.dish.image_url || dish.imageUrl,
+          description: payload.dish.description || "",
+          ingredients: payload.dish.ingredients || [],
+          allergens: payload.dish.allergens || [],
+          dietaryInformation: payload.dish.dietary_information || [],
+          servingSize: payload.dish.serving_size || "",
+        };
+      } else {
+        dish.imageUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result));
+          reader.onerror = () => reject(new Error("Unable to read the selected image."));
+          reader.readAsDataURL(image);
+        });
+      }
+      setDishes((current) => [...current, dish]);
+      setShowDishForm(false);
+      setDishImagePreview("");
+      setDishFormError("");
+      formElement.reset();
+    } catch (error) {
+      setDishFormError(
+        error instanceof Error ? error.message : "Unable to create this dish.",
+      );
+    } finally {
+      setIsCreatingDish(false);
+    }
   }
 
   async function saveSchedule() {
@@ -569,7 +612,11 @@ export function WeeklyPlanner() {
               </div>
               <button
                 type="button"
-                onClick={() => setShowDishForm(false)}
+                onClick={() => {
+                  setShowDishForm(false);
+                  setDishImagePreview("");
+                  setDishFormError("");
+                }}
                 className="grid h-9 w-9 place-items-center rounded-full bg-cream"
               >
                 <X size={17} />
@@ -629,19 +676,47 @@ export function WeeklyPlanner() {
               </select>
             </label>
             <label className="mt-4 block text-sm font-bold">
-              Photo URL <span className="font-normal text-ink/40">Optional</span>
-              <div className="mt-2 flex items-center gap-2 rounded-xl border border-ink/10 px-4">
-                <ImagePlus size={17} className="text-ink/35" />
+              Dish photo
+              <span className="ml-2 font-normal text-ink/40">JPEG, PNG, or WebP · max 4 MB</span>
+              <span className="mt-2 grid min-h-40 cursor-pointer place-items-center overflow-hidden rounded-2xl border border-dashed border-ink/20 bg-cream/40 transition hover:border-tomato/50 hover:bg-cream/70">
+                {dishImagePreview ? (
+                  <span
+                    className="block min-h-48 w-full bg-cover bg-center"
+                    style={{ backgroundImage: `url(${dishImagePreview})` }}
+                  />
+                ) : (
+                  <span className="flex flex-col items-center gap-2 px-5 py-8 text-center font-normal text-ink/50">
+                    <span className="grid h-12 w-12 place-items-center rounded-full bg-tomato/10 text-tomato">
+                      <ImagePlus size={22} />
+                    </span>
+                    <span className="font-bold text-ink">Choose a photo</span>
+                    <span className="text-xs">Click to browse files from your device</span>
+                  </span>
+                )}
                 <input
-                  name="imageUrl"
-                  type="url"
-                  placeholder="https://..."
-                  className="h-12 w-full font-normal outline-none"
+                  required
+                  name="image"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="sr-only"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    setDishFormError("");
+                    setDishImagePreview(file ? URL.createObjectURL(file) : "");
+                  }}
                 />
-              </div>
+              </span>
             </label>
-            <button className="mt-6 w-full rounded-full bg-ink px-5 py-3.5 font-bold text-white hover:bg-moss">
-              Add dish to library
+            {dishFormError ? (
+              <p className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-700" role="alert">
+                {dishFormError}
+              </p>
+            ) : null}
+            <button
+              disabled={isCreatingDish}
+              className="mt-6 w-full rounded-full bg-ink px-5 py-3.5 font-bold text-white hover:bg-moss disabled:cursor-wait disabled:opacity-60"
+            >
+              {isCreatingDish ? "Uploading photo…" : "Add dish to library"}
             </button>
           </form>
         </div>
