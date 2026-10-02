@@ -30,7 +30,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   return (
-    <main className="min-h-screen bg-[#f4f5f0] text-ink">
+    <main className="min-h-screen bg-[#f8f6f7] text-ink">
       <aside className="fixed inset-y-0 left-0 hidden w-64 border-r border-ink/8 bg-white p-5 lg:flex lg:flex-col">
         <div className="px-2 py-2">
           <BrandMark />
@@ -61,7 +61,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         </nav>
         <div className="mt-auto rounded-2xl bg-cream p-4">
           <p className="text-xs font-bold uppercase tracking-[.14em] text-moss">Pilot workspace</p>
-          <p className="mt-2 text-sm font-bold">Greenwood School</p>
+          <p className="mt-2 text-sm font-bold">Kingsway College</p>
           <p className="mt-1 text-xs text-ink/45">Main cafeteria</p>
         </div>
       </aside>
@@ -73,7 +73,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               <BrandMark compact />
             </div>
             <div className="hidden items-center gap-2 text-sm font-semibold text-ink/55 lg:flex">
-              Greenwood School
+              Kingsway College
               <ChevronDown size={15} />
             </div>
             <div className="flex items-center gap-3">

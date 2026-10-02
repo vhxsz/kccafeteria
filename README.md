@@ -1,6 +1,6 @@
-# TrayVoice
+# MealUp
 
-TrayVoice is a privacy-first school cafeteria feedback and food intelligence platform.
+MealUp is a privacy-first school cafeteria feedback and food intelligence platform.
 Students open a table-specific link from an NFC tag or QR code, see the active
 meal, and share structured feedback. Cafeteria teams use the dashboard to turn
 that feedback into better operational decisions.

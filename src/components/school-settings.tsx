@@ -29,7 +29,7 @@ export function SchoolSettings() {
             School name
             <input
               name="schoolName"
-              defaultValue="Greenwood School"
+              defaultValue="Kingsway College"
               className="mt-2 h-12 w-full rounded-xl border border-ink/10 px-4 font-normal outline-none focus:border-moss"
             />
           </label>

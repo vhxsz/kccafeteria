@@ -48,7 +48,7 @@ export default function Home() {
         <div className="relative z-10">
           <div className="mb-7 inline-flex items-center gap-2 rounded-full border border-moss/15 bg-moss/8 px-4 py-2 text-sm font-semibold text-moss">
             <Sparkles size={15} aria-hidden="true" />
-            Better meals start with better listening
+            Built for the Kingsway College community
           </div>
           <h1 className="max-w-3xl text-balance text-5xl font-bold leading-[.98] tracking-[-0.055em] sm:text-6xl lg:text-7xl">
             Make every school meal{" "}
@@ -94,9 +94,9 @@ export default function Home() {
         </div>
 
         <div className="relative mx-auto w-full max-w-xl lg:mx-0">
-          <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-sun/30 blur-3xl" />
-          <div className="absolute -bottom-16 -left-20 h-64 w-64 rounded-full bg-sage/40 blur-3xl" />
-          <div className="relative rotate-1 rounded-[2.25rem] border border-ink/10 bg-white p-4 shadow-[0_30px_90px_rgba(38,49,41,.16)] sm:p-6">
+          <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-sun/70 blur-3xl" />
+          <div className="absolute -bottom-16 -left-20 h-64 w-64 rounded-full bg-sage/35 blur-3xl" />
+          <div className="relative rotate-1 rounded-[2.25rem] border border-ink/10 bg-white p-4 shadow-[0_30px_90px_rgba(133,0,29,.17)] sm:p-6">
             <div className="rounded-[1.75rem] bg-moss p-6 text-white sm:p-8">
               <div className="flex items-center justify-between">
                 <div>

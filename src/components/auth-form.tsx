@@ -116,7 +116,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
         {mode === "signup" ? "Create your school workspace" : "Welcome back"}
       </p>
       <h1 className="mt-2 text-3xl font-bold tracking-[-0.04em] sm:text-4xl">
-        {mode === "signup" ? "Start improving every meal." : "Sign in to TrayVoice."}
+        {mode === "signup" ? "Start improving every meal." : "Sign in to MealUp."}
       </h1>
       <p className="mt-3 leading-7 text-ink/55">
         {mode === "signup"
@@ -142,7 +142,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
               <input
                 required
                 name="schoolName"
-                placeholder="Greenwood School"
+                placeholder="Kingsway College"
                 className="mt-2 h-12 w-full rounded-xl border border-ink/10 bg-white px-4 font-normal outline-none focus:border-moss"
               />
             </label>
@@ -211,7 +211,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
         {loading ? "Please wait..." : mode === "signup" ? "Create school workspace" : "Sign in"}
       </button>
       <p className="mt-6 text-center text-sm text-ink/50">
-        {mode === "signup" ? "Already have an account?" : "New to TrayVoice?"}{" "}
+        {mode === "signup" ? "Already have an account?" : "New to MealUp?"}{" "}
         <Link
           href={mode === "signup" ? "/login" : "/signup"}
           className="font-bold text-moss underline-offset-4 hover:underline"

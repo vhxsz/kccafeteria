@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "TrayVoice — School Cafeteria Feedback",
-    template: "%s | TrayVoice",
+    default: "MealUp — Better School Meals",
+    template: "%s | MealUp",
   },
   description:
     "Turn everyday student feedback into better school meals and clearer cafeteria decisions.",

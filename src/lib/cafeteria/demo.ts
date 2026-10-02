@@ -75,7 +75,7 @@ export function getDemoExperience(tagCode: string): TableExperience {
   const tableMatch = tagCode.match(/\d+/);
 
   return {
-    schoolName: "Greenwood School",
+    schoolName: "Kingsway College",
     cafeteriaName: "Main cafeteria",
     tableNumber: tableMatch ? Number(tableMatch[0]) : 14,
     tagCode,
@@ -124,7 +124,7 @@ export function getDemoWeekMenu(tagCode: string, weekStart: string): StudentWeek
   });
 
   return {
-    schoolName: "Greenwood School",
+    schoolName: "Kingsway College",
     cafeteriaName: "Main cafeteria",
     tagCode,
     timezone: "America/Toronto",

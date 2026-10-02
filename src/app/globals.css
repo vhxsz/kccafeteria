@@ -1,12 +1,12 @@
 @import "tailwindcss";
 
 :root {
-  --cream: #f7f3e9;
-  --ink: #263129;
-  --moss: #355b48;
-  --sage: #b9cfb3;
-  --tomato: #e86342;
-  --sun: #f4c95d;
+  --cream: #ffffff;
+  --ink: #240910;
+  --moss: #85001d;
+  --sage: #dfb3bd;
+  --tomato: #ad1234;
+  --sun: #f7e7eb;
 }
 
 @theme inline {
@@ -47,11 +47,11 @@ button:focus-visible,
 a:focus-visible,
 input:focus-visible,
 textarea:focus-visible {
-  outline: 3px solid rgba(232, 99, 66, 0.35);
+  outline: 3px solid rgba(167, 15, 45, 0.32);
   outline-offset: 3px;
 }
 
 ::selection {
-  background: var(--sun);
-  color: var(--ink);
+  background: var(--moss);
+  color: white;
 }
