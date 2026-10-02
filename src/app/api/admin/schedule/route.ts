@@ -28,10 +28,11 @@ export async function GET(request: Request) {
       .order("name"),
     context.supabase
       .from("meal_periods")
-      .select("id, name")
+      .select("id, name, starts_at, ends_at, sort_order")
       .eq("school_id", context.schoolId)
       .eq("cafeteria_id", context.cafeteriaId)
-      .eq("active", true),
+      .eq("active", true)
+      .order("sort_order"),
     context.supabase
       .from("menus")
       .select("id, service_date, meal_period_id")
@@ -65,6 +66,12 @@ export async function GET(request: Request) {
 
   return Response.json({
     dishes: dishesResult.data || [],
+    mealPeriods: (mealsResult.data || []).map((period) => ({
+      id: period.id,
+      name: period.name,
+      startsAt: String(period.starts_at).slice(0, 5),
+      endsAt: String(period.ends_at).slice(0, 5),
+    })),
     schedule,
   });
 }

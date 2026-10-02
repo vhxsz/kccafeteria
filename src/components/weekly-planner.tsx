@@ -25,8 +25,14 @@ type Dish = {
   servingSize: string;
 };
 
-type MealName = "Breakfast" | "Lunch" | "Dinner";
-type Schedule = Record<string, Record<MealName, Dish[]>>;
+type MealSlot = {
+  id: string;
+  name: string;
+  startsAt: string;
+  endsAt: string;
+};
+
+type Schedule = Record<string, Record<string, Dish[]>>;
 
 const days = [
   { key: "monday", label: "Monday", date: "Sep 28", isoDate: "2026-09-28" },
@@ -46,10 +52,10 @@ const dishDefaults = {
   servingSize: "",
 };
 
-const mealSlots: Array<{ name: MealName; time: string }> = [
-  { name: "Breakfast", time: "6:30 – 10:00" },
-  { name: "Lunch", time: "11:30 – 14:30" },
-  { name: "Dinner", time: "17:00 – 20:30" },
+const defaultMealSlots: MealSlot[] = [
+  { id: "breakfast", name: "Breakfast", startsAt: "06:30", endsAt: "10:00" },
+  { id: "lunch", name: "Lunch", startsAt: "11:30", endsAt: "14:30" },
+  { id: "dinner", name: "Dinner", startsAt: "17:00", endsAt: "20:30" },
 ];
 
 const initialDishes: Dish[] = [
@@ -95,18 +101,20 @@ const initialDishes: Dish[] = [
   },
 ];
 
-const emptySchedule = Object.fromEntries(
-  days.map((day) => [
-    day.key,
-    { Breakfast: [], Lunch: [], Dinner: [] },
-  ]),
-) as Schedule;
+function createEmptySchedule(slots: MealSlot[]) {
+  return Object.fromEntries(
+    days.map((day) => [
+      day.key,
+      Object.fromEntries(slots.map((slot) => [slot.name, [] as Dish[]])),
+    ]),
+  ) as Schedule;
+}
 
-function normalizeSchedule(value?: Partial<Schedule>): Schedule {
-  const normalized = structuredClone(emptySchedule);
+function normalizeSchedule(value: Partial<Schedule> | undefined, slots: MealSlot[]): Schedule {
+  const normalized = createEmptySchedule(slots);
 
   days.forEach((day) => {
-    mealSlots.forEach((slot) => {
+    slots.forEach((slot) => {
       const savedItems = value?.[day.key]?.[slot.name];
       normalized[day.key][slot.name] = Array.isArray(savedItems) ? savedItems : [];
     });
@@ -116,7 +124,7 @@ function normalizeSchedule(value?: Partial<Schedule>): Schedule {
 }
 
 const initialSchedule: Schedule = {
-  ...emptySchedule,
+  ...createEmptySchedule(defaultMealSlots),
   monday: {
     Breakfast: [initialDishes[3]],
     Lunch: [initialDishes[0], initialDishes[2]],
@@ -137,12 +145,13 @@ const initialSchedule: Schedule = {
 type DragPayload = {
   dishId: string;
   fromDay?: string;
-  fromMeal?: MealName;
+  fromMeal?: string;
 };
 
 export function WeeklyPlanner() {
   const [dishes, setDishes] = useState(initialDishes);
   const [schedule, setSchedule] = useState(initialSchedule);
+  const [mealSlots, setMealSlots] = useState(defaultMealSlots);
   const [search, setSearch] = useState("");
   const [showDishForm, setShowDishForm] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -168,6 +177,7 @@ export function WeeklyPlanner() {
               serving_size: string | null;
             }>;
             schedule?: Record<string, Record<string, string[]>>;
+            mealPeriods?: MealSlot[];
           }) => {
             if (!payload.dishes) return;
             const categoryLabels: Record<string, string> = {
@@ -194,9 +204,12 @@ export function WeeklyPlanner() {
               servingSize: dish.serving_size || "",
             }));
             const dishMap = new Map(remoteDishes.map((dish) => [dish.id, dish]));
-            const remoteSchedule = structuredClone(emptySchedule);
+            const remoteMealSlots = payload.mealPeriods?.length
+              ? payload.mealPeriods
+              : defaultMealSlots;
+            const remoteSchedule = createEmptySchedule(remoteMealSlots);
             days.forEach((day) => {
-              mealSlots.forEach((slot) => {
+              remoteMealSlots.forEach((slot) => {
                 remoteSchedule[day.key][slot.name] = (
                   payload.schedule?.[day.isoDate]?.[slot.name] || []
                 )
@@ -205,6 +218,7 @@ export function WeeklyPlanner() {
               });
             });
             setDishes(remoteDishes);
+            setMealSlots(remoteMealSlots);
             setSchedule(remoteSchedule);
           },
         )
@@ -217,7 +231,12 @@ export function WeeklyPlanner() {
       const frame = window.requestAnimationFrame(() => {
         if (savedDishes) setDishes(JSON.parse(savedDishes) as Dish[]);
         if (savedSchedule) {
-          setSchedule(normalizeSchedule(JSON.parse(savedSchedule) as Partial<Schedule>));
+          setSchedule(
+            normalizeSchedule(
+              JSON.parse(savedSchedule) as Partial<Schedule>,
+              defaultMealSlots,
+            ),
+          );
         }
       });
       return () => window.cancelAnimationFrame(frame);
@@ -236,14 +255,14 @@ export function WeeklyPlanner() {
     event: DragEvent,
     dishId: string,
     fromDay?: string,
-    fromMeal?: MealName,
+    fromMeal?: string,
   ) {
     const payload: DragPayload = { dishId, fromDay, fromMeal };
     event.dataTransfer.setData("application/json", JSON.stringify(payload));
     event.dataTransfer.effectAllowed = fromDay ? "move" : "copy";
   }
 
-  function dropDish(event: DragEvent, targetDay: string, targetMeal: MealName) {
+  function dropDish(event: DragEvent, targetDay: string, targetMeal: string) {
     event.preventDefault();
     const payload = JSON.parse(
       event.dataTransfer.getData("application/json"),
@@ -266,7 +285,7 @@ export function WeeklyPlanner() {
     setSaved(false);
   }
 
-  function removeDish(day: string, meal: MealName, dishId: string) {
+  function removeDish(day: string, meal: string, dishId: string) {
     setSchedule((current) => ({
       ...current,
       [day]: {
@@ -490,7 +509,9 @@ export function WeeklyPlanner() {
                         <p className="text-xs font-bold uppercase tracking-[.12em] text-moss">
                           {slot.name}
                         </p>
-                        <span className="text-[10px] text-ink/35">{slot.time}</span>
+                        <span className="text-[10px] text-ink/35">
+                          {slot.startsAt} – {slot.endsAt}
+                        </span>
                       </div>
                       <div className="space-y-2">
                         {(schedule[day.key]?.[slot.name] || []).map((dish) => (

@@ -20,7 +20,7 @@ const navigation = [
   { label: "Site home", icon: Home, href: "/", active: false },
   { label: "Overview", icon: LayoutDashboard, href: "/admin", active: true },
   { label: "Weekly planner", icon: CalendarDays, href: "/admin/schedule", active: false },
-  { label: "Reviews", icon: MessageSquareText, href: "/admin#reviews", active: false },
+  { label: "Reviews", icon: MessageSquareText, href: "/admin/reviews", active: false },
   { label: "Food library", icon: ClipboardList, href: "/admin/schedule#library", active: false },
   { label: "Tables & tags", icon: Tags, href: "/admin/tables", active: false },
   { label: "Settings", icon: Settings, href: "/admin/settings", active: false },
@@ -228,7 +228,9 @@ export default function AdminDashboard() {
                 <p className="text-sm text-ink/45">Live feedback</p>
                 <h2 className="mt-1 text-xl font-bold">Recent reviews</h2>
               </div>
-              <button className="text-sm font-bold text-moss">View all</button>
+              <Link href="/admin/reviews" className="text-sm font-bold text-moss">
+                View all
+              </Link>
             </div>
             <div className="mt-5 divide-y divide-ink/8">
               {recentReviews.map((review) => (

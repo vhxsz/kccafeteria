@@ -20,7 +20,7 @@ const navigation = [
   { label: "Site home", icon: Home, href: "/" },
   { label: "Overview", icon: LayoutDashboard, href: "/admin" },
   { label: "Weekly planner", icon: CalendarDays, href: "/admin/schedule" },
-  { label: "Reviews", icon: MessageSquareText, href: "/admin#reviews" },
+  { label: "Reviews", icon: MessageSquareText, href: "/admin/reviews" },
   { label: "Food library", icon: ClipboardList, href: "/admin/schedule#library" },
   { label: "Tables & tags", icon: Tags, href: "/admin/tables" },
   { label: "Settings", icon: Settings, href: "/admin/settings" },

@@ -1,16 +1,90 @@
 "use client";
 
-import { FormEvent, useState } from "react";
-import { Check } from "lucide-react";
+import { FormEvent, useEffect, useState } from "react";
+import { Check, LoaderCircle } from "lucide-react";
+
+type MealPeriod = {
+  id: string;
+  name: string;
+  startsAt: string;
+  endsAt: string;
+};
+
+type Settings = {
+  schoolName: string;
+  cafeteriaName: string;
+  timezone: string;
+  diningArea: string;
+  mealPeriods: MealPeriod[];
+};
+
+const defaultSettings: Settings = {
+  schoolName: "Kingsway College",
+  cafeteriaName: "Main cafeteria",
+  timezone: "America/Toronto",
+  diningArea: "Main hall",
+  mealPeriods: [
+    { id: "breakfast", name: "Breakfast", startsAt: "06:30", endsAt: "10:00" },
+    { id: "lunch", name: "Lunch", startsAt: "11:30", endsAt: "14:30" },
+    { id: "dinner", name: "Dinner", startsAt: "17:00", endsAt: "20:30" },
+  ],
+};
 
 export function SchoolSettings() {
+  const [settings, setSettings] = useState(defaultSettings);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState("");
 
-  function save(event: FormEvent<HTMLFormElement>) {
+  useEffect(() => {
+    fetch("/api/admin/settings")
+      .then(async (response) => {
+        const payload = (await response.json()) as Settings & { error?: string };
+        if (!response.ok) throw new Error(payload.error || "Settings could not be loaded.");
+        setSettings(payload);
+      })
+      .catch((requestError: Error) => setError(requestError.message))
+      .finally(() => setLoading(false));
+  }, []);
+
+  async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const values = Object.fromEntries(new FormData(event.currentTarget));
-    localStorage.setItem("nourish-school-settings", JSON.stringify(values));
+    setSaving(true);
+    setSaved(false);
+    setError("");
+
+    const response = await fetch("/api/admin/settings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(settings),
+    });
+    const payload = (await response.json()) as { saved?: boolean; error?: string };
+    setSaving(false);
+    if (!response.ok) {
+      setError(payload.error || "Settings could not be saved.");
+      return;
+    }
+
     setSaved(true);
+  }
+
+  function updateField<K extends keyof Omit<Settings, "mealPeriods">>(
+    field: K,
+    value: Settings[K],
+  ) {
+    setSettings((current) => ({ ...current, [field]: value }));
+    setSaved(false);
+  }
+
+  function updateMeal(id: string, field: "startsAt" | "endsAt", value: string) {
+    setSettings((current) => ({
+      ...current,
+      mealPeriods: current.mealPeriods.map((period) =>
+        period.id === id ? { ...period, [field]: value } : period,
+      ),
+    }));
+    setSaved(false);
   }
 
   return (
@@ -24,12 +98,18 @@ export function SchoolSettings() {
       </p>
 
       <form onSubmit={save} className="mt-8 rounded-3xl border border-ink/8 bg-white p-6 shadow-sm sm:p-8">
+        {loading ? (
+          <div className="mb-6 flex items-center gap-2 text-sm font-semibold text-ink/50">
+            <LoaderCircle size={17} className="animate-spin" /> Loading saved settings…
+          </div>
+        ) : null}
         <div className="grid gap-5 sm:grid-cols-2">
           <label className="text-sm font-bold">
             School name
             <input
               name="schoolName"
-              defaultValue="Kingsway College"
+              value={settings.schoolName}
+              onChange={(event) => updateField("schoolName", event.target.value)}
               className="mt-2 h-12 w-full rounded-xl border border-ink/10 px-4 font-normal outline-none focus:border-moss"
             />
           </label>
@@ -37,7 +117,8 @@ export function SchoolSettings() {
             Cafeteria name
             <input
               name="cafeteriaName"
-              defaultValue="Main cafeteria"
+              value={settings.cafeteriaName}
+              onChange={(event) => updateField("cafeteriaName", event.target.value)}
               className="mt-2 h-12 w-full rounded-xl border border-ink/10 px-4 font-normal outline-none focus:border-moss"
             />
           </label>
@@ -45,7 +126,8 @@ export function SchoolSettings() {
             Timezone
             <select
               name="timezone"
-              defaultValue="America/Toronto"
+              value={settings.timezone}
+              onChange={(event) => updateField("timezone", event.target.value)}
               className="mt-2 h-12 w-full rounded-xl border border-ink/10 bg-white px-4 font-normal outline-none focus:border-moss"
             >
               <option value="America/Toronto">Eastern Time — Toronto</option>
@@ -59,7 +141,8 @@ export function SchoolSettings() {
             Default dining area
             <input
               name="diningArea"
-              defaultValue="Main hall"
+              value={settings.diningArea}
+              onChange={(event) => updateField("diningArea", event.target.value)}
               className="mt-2 h-12 w-full rounded-xl border border-ink/10 px-4 font-normal outline-none focus:border-moss"
             />
           </label>
@@ -70,31 +153,38 @@ export function SchoolSettings() {
           A tag link opens the menu whose window contains the current school time.
         </p>
         <div className="mt-5 space-y-3">
-          {[
-            ["Breakfast", "06:30", "10:00"],
-            ["Lunch", "11:30", "14:30"],
-            ["Dinner", "17:00", "20:30"],
-          ].map(([name, start, end]) => (
-            <div key={name} className="grid gap-3 rounded-2xl bg-cream/50 p-4 sm:grid-cols-[1fr_140px_140px] sm:items-center">
-              <p className="font-bold">{name}</p>
+          {settings.mealPeriods.map((period) => (
+            <div key={period.id} className="grid gap-3 rounded-2xl bg-[#f8f6f7] p-4 sm:grid-cols-[1fr_140px_140px] sm:items-center">
+              <p className="font-bold">{period.name}</p>
               <input
-                name={name.toLowerCase() + "Start"}
                 type="time"
-                defaultValue={start}
+                aria-label={period.name + " start time"}
+                value={period.startsAt}
+                onChange={(event) => updateMeal(period.id, "startsAt", event.target.value)}
                 className="h-10 rounded-xl border border-ink/10 bg-white px-3"
               />
               <input
-                name={name.toLowerCase() + "End"}
                 type="time"
-                defaultValue={end}
+                aria-label={period.name + " end time"}
+                value={period.endsAt}
+                onChange={(event) => updateMeal(period.id, "endsAt", event.target.value)}
                 className="h-10 rounded-xl border border-ink/10 bg-white px-3"
               />
             </div>
           ))}
         </div>
-        <button className="mt-7 inline-flex items-center gap-2 rounded-full bg-ink px-6 py-3.5 font-bold text-white hover:bg-moss">
+        {error ? (
+          <p className="mt-5 rounded-xl bg-red-50 p-3 text-sm font-semibold text-red-700" role="alert">
+            {error}
+          </p>
+        ) : null}
+        <button
+          disabled={loading || saving}
+          className="mt-7 inline-flex items-center gap-2 rounded-full bg-ink px-6 py-3.5 font-bold text-white hover:bg-moss disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {saving && <LoaderCircle size={17} className="animate-spin" />}
           {saved && <Check size={17} />}
-          {saved ? "Settings saved" : "Save settings"}
+          {saving ? "Saving…" : saved ? "Settings saved" : "Save settings"}
         </button>
       </form>
     </div>

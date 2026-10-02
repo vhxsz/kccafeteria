@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { Check, Copy, ExternalLink, Plus, QrCode, X } from "lucide-react";
+import QRCode from "qrcode";
 
 type CafeteriaTable = {
   id: string;
@@ -22,6 +23,8 @@ export function TableTagManager() {
   const [tables, setTables] = useState(initialTables);
   const [showForm, setShowForm] = useState(false);
   const [copied, setCopied] = useState("");
+  const [downloadingQr, setDownloadingQr] = useState("");
+  const [downloadError, setDownloadError] = useState("");
   const [formError, setFormError] = useState("");
 
   useEffect(() => {
@@ -120,6 +123,33 @@ export function TableTagManager() {
     window.setTimeout(() => setCopied(""), 1800);
   }
 
+  async function downloadQrCode(table: CafeteriaTable) {
+    setDownloadingQr(table.id);
+    setDownloadError("");
+    try {
+      const link = window.location.origin + "/site/rate/" + table.tagCode;
+      const dataUrl = await QRCode.toDataURL(link, {
+        width: 1024,
+        margin: 3,
+        errorCorrectionLevel: "H",
+        color: {
+          dark: "#85001D",
+          light: "#FFFFFF",
+        },
+      });
+      const download = document.createElement("a");
+      download.href = dataUrl;
+      download.download = `mealup-table-${table.tableNumber}-${table.tagCode}.png`;
+      document.body.appendChild(download);
+      download.click();
+      download.remove();
+    } catch {
+      setDownloadError("The QR code could not be generated. Please try again.");
+    } finally {
+      setDownloadingQr("");
+    }
+  }
+
   async function toggleTable(table: CafeteriaTable) {
     const nextActive = !table.active;
     const next = tables.map((item) =>
@@ -210,10 +240,16 @@ export function TableTagManager() {
                   )}
                 </button>
                 <button
+                  onClick={() => downloadQrCode(table)}
+                  disabled={downloadingQr === table.id}
                   className="grid h-9 w-9 place-items-center rounded-full border border-ink/10"
                   aria-label={"Download QR code for table " + table.tableNumber}
+                  title="Download QR code"
                 >
-                  <QrCode size={16} />
+                  <QrCode
+                    size={16}
+                    className={downloadingQr === table.id ? "animate-pulse" : ""}
+                  />
                 </button>
                 <Link
                   href={"/site/rate/" + table.tagCode}
@@ -227,6 +263,12 @@ export function TableTagManager() {
           ))}
         </div>
       </div>
+
+      {downloadError ? (
+        <p className="mt-4 rounded-xl bg-red-50 p-3 text-sm font-semibold text-red-700" role="alert">
+          {downloadError}
+        </p>
+      ) : null}
 
       <aside className="mt-5 rounded-2xl border border-sun/50 bg-sun/15 p-5 text-sm leading-6 text-ink/70">
         <strong className="text-ink">How meal detection works:</strong> when a
