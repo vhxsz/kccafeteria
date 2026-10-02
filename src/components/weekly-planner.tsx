@@ -102,6 +102,19 @@ const emptySchedule = Object.fromEntries(
   ]),
 ) as Schedule;
 
+function normalizeSchedule(value?: Partial<Schedule>): Schedule {
+  const normalized = structuredClone(emptySchedule);
+
+  days.forEach((day) => {
+    mealSlots.forEach((slot) => {
+      const savedItems = value?.[day.key]?.[slot.name];
+      normalized[day.key][slot.name] = Array.isArray(savedItems) ? savedItems : [];
+    });
+  });
+
+  return normalized;
+}
+
 const initialSchedule: Schedule = {
   ...emptySchedule,
   monday: {
@@ -203,7 +216,9 @@ export function WeeklyPlanner() {
     if (savedDishes || savedSchedule) {
       const frame = window.requestAnimationFrame(() => {
         if (savedDishes) setDishes(JSON.parse(savedDishes) as Dish[]);
-        if (savedSchedule) setSchedule(JSON.parse(savedSchedule) as Schedule);
+        if (savedSchedule) {
+          setSchedule(normalizeSchedule(JSON.parse(savedSchedule) as Partial<Schedule>));
+        }
       });
       return () => window.cancelAnimationFrame(frame);
     }
@@ -478,7 +493,7 @@ export function WeeklyPlanner() {
                         <span className="text-[10px] text-ink/35">{slot.time}</span>
                       </div>
                       <div className="space-y-2">
-                        {schedule[day.key][slot.name].map((dish) => (
+                        {(schedule[day.key]?.[slot.name] || []).map((dish) => (
                           <div
                             key={dish.id}
                             draggable
@@ -505,7 +520,7 @@ export function WeeklyPlanner() {
                             </button>
                           </div>
                         ))}
-                        {schedule[day.key][slot.name].length === 0 && (
+                        {(schedule[day.key]?.[slot.name] || []).length === 0 && (
                           <div className="grid min-h-24 place-items-center rounded-2xl border border-dashed border-ink/15 bg-cream/30 px-3 text-center text-xs text-ink/35">
                             Drop a dish here
                           </div>
