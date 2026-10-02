@@ -1,6 +1,6 @@
 "use client";
 
-import { DragEvent, FormEvent, useEffect, useMemo, useState } from "react";
+import { DragEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
   Check,
   ChevronLeft,
@@ -35,6 +35,7 @@ type MealSlot = {
 type Schedule = Record<string, Record<string, Dish[]>>;
 type MealTime = { startsAt: string; endsAt: string };
 type ScheduleTimes = Record<string, Record<string, MealTime>>;
+type SlotPicker = { day: string; meal: string } | null;
 
 const days = [
   { key: "monday", label: "Monday", date: "Sep 28", isoDate: "2026-09-28" },
@@ -177,6 +178,8 @@ export function WeeklyPlanner() {
   const [dishImagePreview, setDishImagePreview] = useState("");
   const [dishFormError, setDishFormError] = useState("");
   const [isCreatingDish, setIsCreatingDish] = useState(false);
+  const [slotPicker, setSlotPicker] = useState<SlotPicker>(null);
+  const plannerScrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     return () => {
@@ -336,6 +339,35 @@ export function WeeklyPlanner() {
     setSaved(false);
   }
 
+  function addDishToSlot(day: string, meal: string, dish: Dish) {
+    setSchedule((current) => {
+      const existing = current[day]?.[meal] || [];
+      if (existing.some((item) => item.id === dish.id)) return current;
+      return {
+        ...current,
+        [day]: {
+          ...current[day],
+          [meal]: [...existing, dish],
+        },
+      };
+    });
+    setSaved(false);
+    setSlotPicker(null);
+  }
+
+  function autoScrollPlanner(event: DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    const container = plannerScrollRef.current;
+    if (!container) return;
+    const bounds = container.getBoundingClientRect();
+    const edgeSize = 90;
+    if (event.clientX < bounds.left + edgeSize) {
+      container.scrollBy({ left: -24 });
+    } else if (event.clientX > bounds.right - edgeSize) {
+      container.scrollBy({ left: 24 });
+    }
+  }
+
   async function addDish(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const formElement = event.currentTarget;
@@ -486,8 +518,9 @@ export function WeeklyPlanner() {
             Weekly meal planner
           </h1>
           <p className="mt-2 max-w-2xl text-ink/50">
-            Drag dishes into a meal slot. Students only see the published menu
-            matching their school&apos;s date and meal time.
+            Drag dishes into a meal slot or click an empty slot to choose one.
+            Students only see the published menu matching their school&apos;s date
+            and meal time.
           </p>
         </div>
         <div className="flex shrink-0 flex-col items-stretch gap-3 sm:flex-row sm:items-center">
@@ -562,7 +595,11 @@ export function WeeklyPlanner() {
           </p>
         </aside>
 
-        <div className="overflow-x-auto rounded-3xl border border-ink/8 bg-white shadow-sm">
+        <div
+          ref={plannerScrollRef}
+          onDragOver={autoScrollPlanner}
+          className="overflow-x-auto overscroll-x-contain rounded-3xl border border-ink/8 bg-white shadow-sm"
+        >
           <div className="grid min-w-[1540px] grid-cols-7">
             {days.map((day) => (
               <section key={day.key} className="border-r border-ink/8 last:border-r-0">
@@ -664,9 +701,13 @@ export function WeeklyPlanner() {
                           </div>
                         ))}
                         {(schedule[day.key]?.[slot.name] || []).length === 0 && (
-                          <div className="grid min-h-24 place-items-center rounded-2xl border border-dashed border-ink/15 bg-cream/30 px-3 text-center text-xs text-ink/35">
-                            Drop a dish here
-                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setSlotPicker({ day: day.key, meal: slot.name })}
+                            className="grid min-h-24 w-full place-items-center rounded-2xl border border-dashed border-ink/15 bg-cream/30 px-3 text-center text-xs font-semibold text-ink/45 transition hover:border-tomato/40 hover:bg-tomato/5 hover:text-tomato"
+                          >
+                            <span><Plus size={16} className="mx-auto mb-1" /> Drop a dish or click to choose</span>
+                          </button>
                         )}
                       </div>
                     </div>
@@ -677,6 +718,55 @@ export function WeeklyPlanner() {
           </div>
         </div>
       </div>
+
+      {slotPicker ? (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-ink/35 p-5 backdrop-blur-sm">
+          <section className="max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-[2rem] bg-white p-6 shadow-2xl sm:p-8">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm font-semibold text-tomato">Choose from food library</p>
+                <h2 className="mt-1 text-2xl font-bold">Add a dish to {slotPicker.meal}</h2>
+                <p className="mt-1 text-sm text-ink/45">
+                  {days.find((day) => day.key === slotPicker.day)?.label}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSlotPicker(null)}
+                className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-cream"
+                aria-label="Close dish picker"
+              >
+                <X size={17} />
+              </button>
+            </div>
+            {dishes.length ? (
+              <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                {dishes.map((dish) => (
+                  <button
+                    key={dish.id}
+                    type="button"
+                    onClick={() => addDishToSlot(slotPicker.day, slotPicker.meal, dish)}
+                    className="flex items-center gap-3 rounded-2xl border border-ink/8 p-3 text-left transition hover:border-tomato/35 hover:bg-tomato/5"
+                  >
+                    <span
+                      className="h-16 w-16 shrink-0 rounded-xl bg-sage/30 bg-cover bg-center"
+                      style={{ backgroundImage: `url(${dish.imageUrl})` }}
+                    />
+                    <span className="min-w-0">
+                      <span className="block truncate font-bold">{dish.name}</span>
+                      <span className="mt-1 block text-xs text-ink/45">{dish.category}</span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-6 rounded-2xl bg-cream p-6 text-center text-sm text-ink/50">
+                Create a dish in the Food library first.
+              </p>
+            )}
+          </section>
+        </div>
+      ) : null}
 
       {showDishForm && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-ink/35 p-5 backdrop-blur-sm">

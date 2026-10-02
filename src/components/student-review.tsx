@@ -213,7 +213,7 @@ export function StudentReview({ experience }: { experience: TableExperience }) {
 
       <div className="mx-auto max-w-2xl px-5 py-8">
         <Link
-          href={`/site/menu/${experience.tagCode}`}
+          href="/menu"
           className="mb-5 flex items-center justify-between rounded-2xl border border-ink/8 bg-white px-5 py-4 font-bold shadow-sm transition hover:border-moss/35"
         >
           <span className="inline-flex items-center gap-2"><CalendarDays size={19} className="text-moss" /> View the 7-day menu</span>

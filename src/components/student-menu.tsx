@@ -6,11 +6,12 @@ import { CalendarDays, ChevronLeft, Clock3, Leaf, List, Star } from "lucide-reac
 import type { StudentMenuDay, StudentWeekMenu } from "@/lib/cafeteria/types";
 
 function formatDay(date: string, format: "short" | "long") {
+  const dateOnly = date.slice(0, 10);
   return new Intl.DateTimeFormat("en-US", {
     weekday: format === "short" ? "short" : "long",
     month: "short",
     day: "numeric",
-  }).format(new Date(date + "T12:00:00"));
+  }).format(new Date(dateOnly + "T12:00:00"));
 }
 
 function DayMenu({ day }: { day: StudentMenuDay }) {
@@ -90,13 +91,13 @@ function DayMenu({ day }: { day: StudentMenuDay }) {
 
 export function StudentMenu({ menu }: { menu: StudentWeekMenu }) {
   const today = new Date().toISOString().slice(0, 10);
-  const initialDate = menu.days.some((day) => day.serviceDate === today)
+  const initialDate = menu.days.some((day) => day.serviceDate.slice(0, 10) === today)
     ? today
-    : menu.days[0]?.serviceDate;
+    : menu.days[0]?.serviceDate.slice(0, 10);
   const [view, setView] = useState<"day" | "week">("week");
   const [selectedDate, setSelectedDate] = useState(initialDate);
   const selectedDay = useMemo(
-    () => menu.days.find((day) => day.serviceDate === selectedDate) || menu.days[0],
+    () => menu.days.find((day) => day.serviceDate.slice(0, 10) === selectedDate) || menu.days[0],
     [menu.days, selectedDate],
   );
 
@@ -133,7 +134,7 @@ export function StudentMenu({ menu }: { menu: StudentWeekMenu }) {
           {menu.days.map((day) => (
             <button
               key={day.serviceDate}
-              onClick={() => { setSelectedDate(day.serviceDate); setView("day"); }}
+              onClick={() => { setSelectedDate(day.serviceDate.slice(0, 10)); setView("day"); }}
               className={`min-w-24 rounded-2xl border p-3 text-left transition ${selectedDate === day.serviceDate ? "border-moss bg-moss text-white" : "border-ink/8 bg-white hover:border-moss/35"}`}
             >
               <p className="text-xs font-bold uppercase tracking-wider opacity-60">{formatDay(day.serviceDate, "short").split(",")[0]}</p>
@@ -153,8 +154,8 @@ export function StudentMenu({ menu }: { menu: StudentWeekMenu }) {
         </div>
 
         <div className="mt-7 flex flex-col items-center justify-between gap-4 rounded-3xl bg-sun/30 p-6 text-center sm:flex-row sm:text-left">
-          <div><p className="font-bold">Eating now?</p><p className="mt-1 text-sm text-ink/55">Rate the complete meal or only the items you tried.</p></div>
-          <Link href={`/site/rate/${menu.tagCode}`} className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-bold text-white"><Star size={16} /> Rate this meal</Link>
+          <div><p className="font-bold">Eating now?</p><p className="mt-1 text-sm text-ink/55">Scan the QR code or NFC tag at your table to rate the meal.</p></div>
+          <Link href="/" className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-bold text-white"><Star size={16} /> Back to home</Link>
         </div>
       </div>
     </main>

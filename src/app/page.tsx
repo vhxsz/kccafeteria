@@ -71,7 +71,7 @@ export default function Home() {
               />
             </Link>
             <Link
-              href="/site/menu/tag14"
+              href="/menu"
               className="inline-flex items-center justify-center rounded-full border border-ink/15 bg-white px-6 py-3.5 text-sm font-bold transition hover:border-ink/30"
             >
               View the 7-day menu
