@@ -1,152 +1,190 @@
 import Link from "next/link";
 import {
   ArrowRight,
-  BarChart3,
-  MessageSquareText,
+  CalendarDays,
+  Check,
+  Clock3,
+  LogIn,
   QrCode,
-  ShieldCheck,
-  Sparkles,
+  Star,
   UtensilsCrossed,
 } from "lucide-react";
 import { BrandMark } from "@/components/brand-mark";
 
-const features = [
-  {
-    icon: QrCode,
-    title: "Tap. Taste. Tell us.",
-    description:
-      "Students open the right menu instantly from an NFC tag or QR code at their table.",
-  },
-  {
-    icon: MessageSquareText,
-    title: "Feedback with context",
-    description:
-      "Every rating is connected to the meal, food item, time, and cafeteria location.",
-  },
-  {
-    icon: BarChart3,
-    title: "Decisions, not noise",
-    description:
-      "Managers see trends, recurring issues, and clear signals they can act on.",
-  },
+const menuDetails = [
+  "Breakfast, lunch, and dinner",
+  "Monday through Sunday",
+  "Ingredients and allergen details",
 ];
 
 export default function Home() {
   return (
-    <main className="min-h-screen overflow-hidden bg-cream text-ink">
-      <nav className="mx-auto flex w-full max-w-7xl items-center justify-between px-5 py-6 sm:px-8 lg:px-12">
-        <BrandMark />
-        <Link
-          href="/login"
-          className="rounded-full border border-ink/15 bg-white/70 px-5 py-2.5 text-sm font-semibold transition hover:border-ink/30 hover:bg-white"
-        >
-          Manager sign in
-        </Link>
-      </nav>
-
-      <section className="relative mx-auto grid w-full max-w-7xl gap-14 px-5 pb-24 pt-12 sm:px-8 lg:grid-cols-[1.05fr_.95fr] lg:items-center lg:px-12 lg:pb-32 lg:pt-20">
-        <div className="relative z-10">
-          <div className="mb-7 inline-flex items-center gap-2 rounded-full border border-moss/15 bg-moss/8 px-4 py-2 text-sm font-semibold text-moss">
-            <Sparkles size={15} aria-hidden="true" />
-            Built for the Kingsway College community
+    <main className="min-h-screen bg-white text-ink">
+      <header className="border-b border-ink/10 bg-white">
+        <nav className="mx-auto flex w-full max-w-6xl items-center justify-between px-5 py-5 sm:px-8">
+          <BrandMark />
+          <div className="hidden items-center gap-7 text-sm font-semibold text-ink/65 md:flex">
+            <a href="#menu" className="transition hover:text-moss">
+              Menu
+            </a>
+            <a href="#vote" className="transition hover:text-moss">
+              Vote
+            </a>
+            <a href="#staff" className="transition hover:text-moss">
+              Staff
+            </a>
           </div>
-          <h1 className="max-w-3xl text-balance text-5xl font-bold leading-[.98] tracking-[-0.055em] sm:text-6xl lg:text-7xl">
-            Make every school meal{" "}
-            <span className="font-serif font-normal italic text-tomato">better.</span>
-          </h1>
-          <p className="mt-7 max-w-xl text-lg leading-8 text-ink/65 sm:text-xl">
-            A simple feedback loop that helps students feel heard and gives
-            cafeteria teams the clarity to improve every plate.
-          </p>
-          <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+          <Link
+            href="/login"
+            className="inline-flex items-center gap-2 border-b-2 border-moss pb-1 text-sm font-bold text-moss"
+          >
+            Staff login <LogIn size={15} aria-hidden="true" />
+          </Link>
+        </nav>
+      </header>
+
+      <section id="menu" className="border-b border-ink/10 bg-[#f8f4f5]">
+        <div className="mx-auto grid w-full max-w-6xl gap-10 px-5 py-16 sm:px-8 sm:py-24 lg:grid-cols-[1.1fr_.9fr] lg:items-center lg:py-28">
+          <div>
+            <p className="text-sm font-bold uppercase tracking-[.16em] text-moss">
+              Kingsway College · Main cafeteria
+            </p>
+            <h1 className="mt-5 max-w-3xl text-5xl font-bold leading-[1.02] tracking-[-0.055em] sm:text-6xl lg:text-7xl">
+              See what&apos;s on the menu.
+            </h1>
+            <p className="mt-6 max-w-2xl text-lg leading-8 text-ink/65">
+              Check the full seven-day cafeteria schedule, including serving times,
+              ingredients, allergens, and dietary information.
+            </p>
+            <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+              <Link
+                href="/menu"
+                className="inline-flex items-center justify-center gap-2 bg-moss px-7 py-4 text-sm font-bold text-white transition hover:bg-tomato"
+              >
+                View this week&apos;s menu <ArrowRight size={17} aria-hidden="true" />
+              </Link>
+              <a
+                href="#vote"
+                className="inline-flex items-center justify-center gap-2 border border-ink/20 bg-white px-7 py-4 text-sm font-bold transition hover:border-moss hover:text-moss"
+              >
+                Rate a meal <Star size={17} aria-hidden="true" />
+              </a>
+            </div>
+          </div>
+
+          <div className="border border-ink/12 bg-white">
+            <div className="flex items-center justify-between border-b border-ink/10 px-6 py-5 sm:px-8">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[.16em] text-moss">
+                  Student menu
+                </p>
+                <p className="mt-1 text-xl font-bold">Current week</p>
+              </div>
+              <CalendarDays size={26} className="text-moss" aria-hidden="true" />
+            </div>
+            <div className="px-6 py-7 sm:px-8">
+              <ul className="space-y-4">
+                {menuDetails.map((detail) => (
+                  <li key={detail} className="flex items-center gap-3 text-sm font-semibold">
+                    <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-sun text-moss">
+                      <Check size={14} strokeWidth={3} aria-hidden="true" />
+                    </span>
+                    {detail}
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-7 border-t border-ink/10 pt-6">
+                <Link
+                  href="/menu"
+                  className="flex items-center justify-between gap-4 font-bold text-moss hover:text-tomato"
+                >
+                  Open the weekly schedule
+                  <ArrowRight size={18} aria-hidden="true" />
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="vote" className="bg-moss text-white">
+        <div className="mx-auto grid w-full max-w-6xl gap-12 px-5 py-16 sm:px-8 sm:py-20 lg:grid-cols-[.8fr_1.2fr] lg:items-start">
+          <div>
+            <div className="grid h-12 w-12 place-items-center border border-white/25">
+              <QrCode size={24} aria-hidden="true" />
+            </div>
+            <p className="mt-7 text-sm font-bold uppercase tracking-[.16em] text-white/65">
+              Student feedback
+            </p>
+            <h2 className="mt-3 text-4xl font-bold tracking-[-0.04em] sm:text-5xl">
+              Had a meal today?
+            </h2>
+          </div>
+
+          <div>
+            <p className="max-w-2xl text-lg leading-8 text-white/75">
+              Scan the QR code or tap the NFC tag on your table. Choose only the
+              food and drinks you had, rate each item, and leave an optional note
+              for the cafeteria team.
+            </p>
+            <ol className="mt-8 grid gap-px border border-white/20 bg-white/20 sm:grid-cols-3">
+              {[
+                ["01", "Open your table tag"],
+                ["02", "Select what you ate"],
+                ["03", "Send your rating"],
+              ].map(([number, label]) => (
+                <li key={number} className="bg-moss p-5">
+                  <span className="text-xs font-bold tracking-[.16em] text-white/50">{number}</span>
+                  <p className="mt-2 font-bold">{label}</p>
+                </li>
+              ))}
+            </ol>
             <Link
               href="/site/rate/tag14"
-              className="group inline-flex items-center justify-center gap-2 rounded-full bg-ink px-6 py-3.5 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-moss"
+              className="mt-8 inline-flex items-center gap-2 bg-white px-6 py-3.5 text-sm font-bold text-moss transition hover:bg-sun"
             >
-              Try the student experience
-              <ArrowRight
-                size={17}
-                className="transition group-hover:translate-x-1"
-                aria-hidden="true"
-              />
+              Preview student voting <ArrowRight size={17} aria-hidden="true" />
             </Link>
-            <Link
-              href="/menu"
-              className="inline-flex items-center justify-center rounded-full border border-ink/15 bg-white px-6 py-3.5 text-sm font-bold transition hover:border-ink/30"
-            >
-              View the 7-day menu
-            </Link>
-            <Link
-              href="/admin"
-              className="inline-flex items-center justify-center rounded-full border border-ink/15 bg-white px-6 py-3.5 text-sm font-bold transition hover:border-ink/30"
-            >
-              Explore the dashboard
-            </Link>
-          </div>
-          <div className="mt-10 flex flex-wrap gap-x-7 gap-y-3 text-sm font-medium text-ink/55">
-            <span className="flex items-center gap-2">
-              <ShieldCheck size={16} className="text-moss" /> Privacy-first
-            </span>
-            <span className="flex items-center gap-2">
-              <UtensilsCrossed size={16} className="text-moss" /> Built for schools
-            </span>
-          </div>
-        </div>
-
-        <div className="relative mx-auto w-full max-w-xl lg:mx-0">
-          <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-sun/70 blur-3xl" />
-          <div className="absolute -bottom-16 -left-20 h-64 w-64 rounded-full bg-sage/35 blur-3xl" />
-          <div className="relative rotate-1 rounded-[2.25rem] border border-ink/10 bg-white p-4 shadow-[0_30px_90px_rgba(133,0,29,.17)] sm:p-6">
-            <div className="rounded-[1.75rem] bg-moss p-6 text-white sm:p-8">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-white/65">Thursday, October 1</p>
-                  <h2 className="mt-1 text-3xl font-bold tracking-tight">Today&apos;s lunch</h2>
-                </div>
-                <div className="grid h-12 w-12 place-items-center rounded-2xl bg-white/12">
-                  <UtensilsCrossed size={22} />
-                </div>
-              </div>
-              <div className="mt-8 grid grid-cols-2 gap-3">
-                {["Grilled chicken", "Herbed rice", "Garden salad", "Orange juice"].map(
-                  (item, index) => (
-                    <div
-                      key={item}
-                      className="rounded-2xl bg-white/10 p-4 backdrop-blur-sm"
-                    >
-                      <span className="text-xs font-bold uppercase tracking-[.16em] text-sun">
-                        {index === 0 ? "Main" : index === 3 ? "Drink" : "Side"}
-                      </span>
-                      <p className="mt-2 font-semibold">{item}</p>
-                    </div>
-                  ),
-                )}
-              </div>
-            </div>
-            <div className="flex items-center justify-between px-3 pb-2 pt-5">
-              <div>
-                <p className="text-sm text-ink/50">How was your meal?</p>
-                <div className="mt-1 flex gap-1 text-2xl text-tomato" aria-label="Five stars">
-                  ★ ★ ★ ★ ★
-                </div>
-              </div>
-              <div className="rounded-full bg-sun px-4 py-2 text-sm font-bold">Share feedback</div>
-            </div>
           </div>
         </div>
       </section>
 
-      <section className="border-y border-ink/8 bg-white/55">
-        <div className="mx-auto grid w-full max-w-7xl gap-px px-5 py-6 sm:px-8 md:grid-cols-3 lg:px-12">
-          {features.map((feature) => (
-            <article key={feature.title} className="px-3 py-8 md:px-8">
-              <feature.icon className="text-tomato" size={28} strokeWidth={1.8} />
-              <h2 className="mt-5 text-xl font-bold tracking-tight">{feature.title}</h2>
-              <p className="mt-2 max-w-sm leading-7 text-ink/60">{feature.description}</p>
-            </article>
-          ))}
+      <section id="staff" className="border-b border-ink/10 bg-white">
+        <div className="mx-auto grid w-full max-w-6xl gap-8 px-5 py-16 sm:px-8 sm:py-20 md:grid-cols-[1fr_auto] md:items-center">
+          <div className="flex items-start gap-5">
+            <span className="grid h-12 w-12 shrink-0 place-items-center bg-sun text-moss">
+              <UtensilsCrossed size={23} aria-hidden="true" />
+            </span>
+            <div>
+              <p className="text-sm font-bold uppercase tracking-[.16em] text-moss">
+                Cafeteria staff
+              </p>
+              <h2 className="mt-2 text-3xl font-bold tracking-[-0.035em]">
+                Manage meals and feedback.
+              </h2>
+              <p className="mt-3 max-w-2xl leading-7 text-ink/60">
+                Plan the weekly schedule, update serving times, manage table tags,
+                and review student ratings in the private staff dashboard.
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/login"
+            className="inline-flex items-center justify-center gap-2 border border-ink bg-ink px-7 py-4 text-sm font-bold text-white transition hover:bg-moss"
+          >
+            Manager sign in <LogIn size={17} aria-hidden="true" />
+          </Link>
         </div>
       </section>
+
+      <footer className="bg-white">
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-5 py-8 text-sm text-ink/50 sm:flex-row sm:items-center sm:justify-between sm:px-8">
+          <p className="font-semibold text-ink/70">MealUp at Kingsway College</p>
+          <p className="inline-flex items-center gap-2">
+            <Clock3 size={15} aria-hidden="true" /> Menu information is maintained by cafeteria staff.
+          </p>
+        </div>
+      </footer>
     </main>
   );
 }
