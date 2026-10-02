@@ -53,7 +53,8 @@ export function TableTagManager() {
 
   async function createTable(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const data = new FormData(event.currentTarget);
+    const formElement = event.currentTarget;
+    const data = new FormData(formElement);
     const tableNumber = Number(data.get("tableNumber"));
     const tagCode = String(data.get("tagCode") || "").trim().toLowerCase();
     const area = String(data.get("area") || "").trim();
@@ -107,7 +108,7 @@ export function TableTagManager() {
       ...tables,
       createdTable,
     ]);
-    event.currentTarget.reset();
+    formElement.reset();
     setFormError("");
     setShowForm(false);
   }
