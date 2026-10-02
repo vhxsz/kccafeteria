@@ -15,6 +15,21 @@ const dishSchema = z.object({
   servingSize: z.string().trim().max(100).default(""),
 });
 
+export async function GET() {
+  const context = await getAdminContext();
+  if (!context) return Response.json({ error: "Unauthorized." }, { status: 401 });
+
+  const { data, error } = await context.supabase
+    .from("food_items")
+    .select("id, name, category, image_url, description, ingredients, allergens, dietary_information, serving_size")
+    .eq("school_id", context.schoolId)
+    .eq("active", true)
+    .order("name");
+
+  if (error) return Response.json({ error: error.message }, { status: 400 });
+  return Response.json({ dishes: data || [] });
+}
+
 export async function POST(request: Request) {
   const context = await getAdminContext();
   if (!context) return Response.json({ error: "Unauthorized." }, { status: 401 });

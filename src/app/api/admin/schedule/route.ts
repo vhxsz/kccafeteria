@@ -2,10 +2,23 @@ import { z } from "zod";
 import { getAdminContext } from "@/lib/auth/admin-context";
 
 const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+const timePattern = /^([01]\d|2[0-3]):[0-5]\d$/;
+const mealTimeSchema = z
+  .object({
+    startsAt: z.string().regex(timePattern),
+    endsAt: z.string().regex(timePattern),
+  })
+  .refine((value) => value.startsAt < value.endsAt, {
+    message: "Meal end time must be after its start time.",
+  });
 const saveSchema = z.object({
   schedule: z.record(
     z.string().regex(datePattern),
     z.record(z.string(), z.array(z.uuid()).max(30)),
+  ),
+  mealTimes: z.record(
+    z.string().regex(datePattern),
+    z.record(z.string(), mealTimeSchema),
   ),
 });
 
@@ -35,7 +48,7 @@ export async function GET(request: Request) {
       .order("sort_order"),
     context.supabase
       .from("menus")
-      .select("id, service_date, meal_period_id")
+      .select("id, service_date, meal_period_id, service_starts_at, service_ends_at")
       .eq("school_id", context.schoolId)
       .eq("cafeteria_id", context.cafeteriaId)
       .gte("service_date", start)
@@ -54,6 +67,7 @@ export async function GET(request: Request) {
 
   const mealNames = new Map((mealsResult.data || []).map((meal) => [meal.id, meal.name]));
   const schedule: Record<string, Record<string, string[]>> = {};
+  const mealTimes: Record<string, Record<string, { startsAt: string; endsAt: string }>> = {};
 
   menus.forEach((menu) => {
     const mealName = mealNames.get(menu.meal_period_id);
@@ -62,6 +76,13 @@ export async function GET(request: Request) {
     schedule[menu.service_date][mealName] = (menuItemsResult.data || [])
       .filter((item) => item.menu_id === menu.id)
       .map((item) => item.food_item_id);
+    if (menu.service_starts_at && menu.service_ends_at) {
+      mealTimes[menu.service_date] ||= {};
+      mealTimes[menu.service_date][mealName] = {
+        startsAt: String(menu.service_starts_at).slice(0, 5),
+        endsAt: String(menu.service_ends_at).slice(0, 5),
+      };
+    }
   });
 
   return Response.json({
@@ -73,6 +94,7 @@ export async function GET(request: Request) {
       endsAt: String(period.ends_at).slice(0, 5),
     })),
     schedule,
+    mealTimes,
   });
 }
 
@@ -84,7 +106,7 @@ export async function PUT(request: Request) {
 
   const { data: mealPeriods, error: mealError } = await context.supabase
     .from("meal_periods")
-    .select("id, name")
+    .select("id, name, starts_at, ends_at")
     .eq("school_id", context.schoolId)
     .eq("cafeteria_id", context.cafeteriaId)
     .eq("active", true);
@@ -93,6 +115,7 @@ export async function PUT(request: Request) {
   for (const [serviceDate, meals] of Object.entries(parsed.data.schedule)) {
     for (const mealPeriod of mealPeriods) {
       const dishIds = meals[mealPeriod.name] || [];
+      const customTime = parsed.data.mealTimes[serviceDate]?.[mealPeriod.name];
       const { data: menu, error: menuError } = await context.supabase
         .from("menus")
         .upsert(
@@ -101,6 +124,8 @@ export async function PUT(request: Request) {
             cafeteria_id: context.cafeteriaId,
             meal_period_id: mealPeriod.id,
             service_date: serviceDate,
+            service_starts_at: customTime?.startsAt || mealPeriod.starts_at,
+            service_ends_at: customTime?.endsAt || mealPeriod.ends_at,
             published: true,
           },
           { onConflict: "cafeteria_id,meal_period_id,service_date" },

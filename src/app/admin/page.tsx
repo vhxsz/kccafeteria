@@ -21,7 +21,7 @@ const navigation = [
   { label: "Overview", icon: LayoutDashboard, href: "/admin", active: true },
   { label: "Weekly planner", icon: CalendarDays, href: "/admin/schedule", active: false },
   { label: "Reviews", icon: MessageSquareText, href: "/admin/reviews", active: false },
-  { label: "Food library", icon: ClipboardList, href: "/admin/schedule#library", active: false },
+  { label: "Food library", icon: ClipboardList, href: "/admin/food", active: false },
   { label: "Tables & tags", icon: Tags, href: "/admin/tables", active: false },
   { label: "Settings", icon: Settings, href: "/admin/settings", active: false },
 ];

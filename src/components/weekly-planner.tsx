@@ -33,6 +33,8 @@ type MealSlot = {
 };
 
 type Schedule = Record<string, Record<string, Dish[]>>;
+type MealTime = { startsAt: string; endsAt: string };
+type ScheduleTimes = Record<string, Record<string, MealTime>>;
 
 const days = [
   { key: "monday", label: "Monday", date: "Sep 28", isoDate: "2026-09-28" },
@@ -110,6 +112,20 @@ function createEmptySchedule(slots: MealSlot[]) {
   ) as Schedule;
 }
 
+function createDefaultScheduleTimes(slots: MealSlot[]) {
+  return Object.fromEntries(
+    days.map((day) => [
+      day.key,
+      Object.fromEntries(
+        slots.map((slot) => [
+          slot.name,
+          { startsAt: slot.startsAt, endsAt: slot.endsAt },
+        ]),
+      ),
+    ]),
+  ) as ScheduleTimes;
+}
+
 function normalizeSchedule(value: Partial<Schedule> | undefined, slots: MealSlot[]): Schedule {
   const normalized = createEmptySchedule(slots);
 
@@ -152,6 +168,9 @@ export function WeeklyPlanner() {
   const [dishes, setDishes] = useState(initialDishes);
   const [schedule, setSchedule] = useState(initialSchedule);
   const [mealSlots, setMealSlots] = useState(defaultMealSlots);
+  const [mealTimes, setMealTimes] = useState(() =>
+    createDefaultScheduleTimes(defaultMealSlots),
+  );
   const [search, setSearch] = useState("");
   const [showDishForm, setShowDishForm] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -186,6 +205,7 @@ export function WeeklyPlanner() {
               serving_size: string | null;
             }>;
             schedule?: Record<string, Record<string, string[]>>;
+            mealTimes?: Record<string, Record<string, MealTime>>;
             mealPeriods?: MealSlot[];
           }) => {
             if (!payload.dishes) return;
@@ -217,6 +237,7 @@ export function WeeklyPlanner() {
               ? payload.mealPeriods
               : defaultMealSlots;
             const remoteSchedule = createEmptySchedule(remoteMealSlots);
+            const remoteMealTimes = createDefaultScheduleTimes(remoteMealSlots);
             days.forEach((day) => {
               remoteMealSlots.forEach((slot) => {
                 remoteSchedule[day.key][slot.name] = (
@@ -224,11 +245,17 @@ export function WeeklyPlanner() {
                 )
                   .map((id) => dishMap.get(id))
                   .filter((dish): dish is Dish => Boolean(dish));
+                remoteMealTimes[day.key][slot.name] =
+                  payload.mealTimes?.[day.isoDate]?.[slot.name] || {
+                    startsAt: slot.startsAt,
+                    endsAt: slot.endsAt,
+                  };
               });
             });
             setDishes(remoteDishes);
             setMealSlots(remoteMealSlots);
             setSchedule(remoteSchedule);
+            setMealTimes(remoteMealTimes);
           },
         )
         .catch(() => undefined);
@@ -236,7 +263,8 @@ export function WeeklyPlanner() {
     }
     const savedDishes = localStorage.getItem("nourish-dishes");
     const savedSchedule = localStorage.getItem("nourish-schedule");
-    if (savedDishes || savedSchedule) {
+    const savedMealTimes = localStorage.getItem("nourish-meal-times");
+    if (savedDishes || savedSchedule || savedMealTimes) {
       const frame = window.requestAnimationFrame(() => {
         if (savedDishes) setDishes(JSON.parse(savedDishes) as Dish[]);
         if (savedSchedule) {
@@ -246,6 +274,9 @@ export function WeeklyPlanner() {
               defaultMealSlots,
             ),
           );
+        }
+        if (savedMealTimes) {
+          setMealTimes(JSON.parse(savedMealTimes) as ScheduleTimes);
         }
       });
       return () => window.cancelAnimationFrame(frame);
@@ -414,6 +445,7 @@ export function WeeklyPlanner() {
   async function saveSchedule() {
     localStorage.setItem("nourish-dishes", JSON.stringify(dishes));
     localStorage.setItem("nourish-schedule", JSON.stringify(schedule));
+    localStorage.setItem("nourish-meal-times", JSON.stringify(mealTimes));
 
     if (
       process.env.NEXT_PUBLIC_SUPABASE_URL &&
@@ -433,7 +465,12 @@ export function WeeklyPlanner() {
       const response = await fetch("/api/admin/schedule", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ schedule: scheduleByDate }),
+        body: JSON.stringify({
+          schedule: scheduleByDate,
+          mealTimes: Object.fromEntries(
+            days.map((day) => [day.isoDate, mealTimes[day.key]]),
+          ),
+        }),
       });
       if (!response.ok) return;
     }
@@ -453,19 +490,21 @@ export function WeeklyPlanner() {
             matching their school&apos;s date and meal time.
           </p>
         </div>
-        <div className="flex flex-wrap gap-3">
-          <button className="grid h-11 w-11 place-items-center rounded-full border border-ink/10 bg-white">
-            <ChevronLeft size={18} />
-          </button>
-          <div className="rounded-full border border-ink/10 bg-white px-5 py-3 text-sm font-bold">
-            Sep 28 – Oct 4, 2026
+        <div className="flex shrink-0 flex-col items-stretch gap-3 sm:flex-row sm:items-center">
+          <div className="flex shrink-0 items-center gap-3">
+            <button className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-ink/10 bg-white">
+              <ChevronLeft size={18} />
+            </button>
+            <div className="whitespace-nowrap rounded-full border border-ink/10 bg-white px-5 py-3 text-sm font-bold">
+              Sep 28 – Oct 4, 2026
+            </div>
+            <button className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-ink/10 bg-white">
+              <ChevronRight size={18} />
+            </button>
           </div>
-          <button className="grid h-11 w-11 place-items-center rounded-full border border-ink/10 bg-white">
-            <ChevronRight size={18} />
-          </button>
           <button
             onClick={saveSchedule}
-            className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-bold text-white hover:bg-moss"
+            className="inline-flex h-11 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-full bg-ink px-5 text-sm font-bold text-white hover:bg-moss"
           >
             {saved ? <Check size={17} /> : null}
             {saved ? "Schedule saved" : "Save schedule"}
@@ -552,9 +591,49 @@ export function WeeklyPlanner() {
                         <p className="text-xs font-bold uppercase tracking-[.12em] text-moss">
                           {slot.name}
                         </p>
-                        <span className="text-[10px] text-ink/35">
-                          {slot.startsAt} – {slot.endsAt}
-                        </span>
+                        <div className="flex items-center gap-1 text-[10px] text-ink/40">
+                          <input
+                            type="time"
+                            aria-label={`${day.label} ${slot.name} start time`}
+                            value={mealTimes[day.key]?.[slot.name]?.startsAt || slot.startsAt}
+                            onChange={(event) => {
+                              const startsAt = event.target.value;
+                              setMealTimes((current) => ({
+                                ...current,
+                                [day.key]: {
+                                  ...current[day.key],
+                                  [slot.name]: {
+                                    ...current[day.key][slot.name],
+                                    startsAt,
+                                  },
+                                },
+                              }));
+                              setSaved(false);
+                            }}
+                            className="w-[4.7rem] rounded-lg border border-ink/10 bg-cream/50 px-1.5 py-1 font-semibold outline-none focus:border-tomato"
+                          />
+                          <span>–</span>
+                          <input
+                            type="time"
+                            aria-label={`${day.label} ${slot.name} end time`}
+                            value={mealTimes[day.key]?.[slot.name]?.endsAt || slot.endsAt}
+                            onChange={(event) => {
+                              const endsAt = event.target.value;
+                              setMealTimes((current) => ({
+                                ...current,
+                                [day.key]: {
+                                  ...current[day.key],
+                                  [slot.name]: {
+                                    ...current[day.key][slot.name],
+                                    endsAt,
+                                  },
+                                },
+                              }));
+                              setSaved(false);
+                            }}
+                            className="w-[4.7rem] rounded-lg border border-ink/10 bg-cream/50 px-1.5 py-1 font-semibold outline-none focus:border-tomato"
+                          />
+                        </div>
                       </div>
                       <div className="space-y-2">
                         {(schedule[day.key]?.[slot.name] || []).map((dish) => (
