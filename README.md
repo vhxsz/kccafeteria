@@ -1,6 +1,6 @@
-# Nourish
+# TrayVoice
 
-Nourish is a privacy-first school cafeteria feedback and food intelligence platform.
+TrayVoice is a privacy-first school cafeteria feedback and food intelligence platform.
 Students open a table-specific link from an NFC tag or QR code, see the active
 meal, and share structured feedback. Cafeteria teams use the dashboard to turn
 that feedback into better operational decisions.
@@ -19,7 +19,7 @@ that feedback into better operational decisions.
 - Vercel-ready Next.js configuration
 
 The screens use representative data when Supabase credentials are absent. Once
-the environment values are present and both migrations are applied, account
+the environment values are present and all migrations are applied, account
 creation, menu persistence, table tags, time-based menu resolution, and reviews
 use Supabase.
 
@@ -64,7 +64,7 @@ school timezone, active meal window, and published menu before accepting a revie
 
 ## Vercel deployment
 
-Import this repository into Vercel and add the three variables from
+Import this repository into Vercel and add the four variables from
 .env.example to the project environment settings. Use separate Supabase
 projects for development, staging, and production.
 
