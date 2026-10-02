@@ -587,11 +587,11 @@ export function WeeklyPlanner() {
                       onDrop={(event) => dropDish(event, day.key, slot.name)}
                       className="min-h-52 p-3 transition hover:bg-sage/8"
                     >
-                      <div className="mb-3 flex items-center justify-between">
+                      <div className="mb-3 space-y-2">
                         <p className="text-xs font-bold uppercase tracking-[.12em] text-moss">
                           {slot.name}
                         </p>
-                        <div className="flex items-center gap-1 text-[10px] text-ink/40">
+                        <div className="flex w-full items-center gap-1.5 text-[10px] text-ink/40">
                           <input
                             type="time"
                             aria-label={`${day.label} ${slot.name} start time`}
@@ -610,7 +610,7 @@ export function WeeklyPlanner() {
                               }));
                               setSaved(false);
                             }}
-                            className="w-[4.7rem] rounded-lg border border-ink/10 bg-cream/50 px-1.5 py-1 font-semibold outline-none focus:border-tomato"
+                            className="min-w-0 flex-1 rounded-lg border border-ink/10 bg-cream/50 px-1.5 py-1 font-semibold outline-none focus:border-tomato"
                           />
                           <span>–</span>
                           <input
@@ -631,7 +631,7 @@ export function WeeklyPlanner() {
                               }));
                               setSaved(false);
                             }}
-                            className="w-[4.7rem] rounded-lg border border-ink/10 bg-cream/50 px-1.5 py-1 font-semibold outline-none focus:border-tomato"
+                            className="min-w-0 flex-1 rounded-lg border border-ink/10 bg-cream/50 px-1.5 py-1 font-semibold outline-none focus:border-tomato"
                           />
                         </div>
                       </div>
