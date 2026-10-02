@@ -36,16 +36,84 @@ type Schedule = Record<string, Record<string, Dish[]>>;
 type MealTime = { startsAt: string; endsAt: string };
 type ScheduleTimes = Record<string, Record<string, MealTime>>;
 type SlotPicker = { day: string; meal: string } | null;
+type PlannerDay = {
+  key: string;
+  label: string;
+  date: string;
+  isoDate: string;
+  today: boolean;
+};
 
-const days = [
-  { key: "monday", label: "Monday", date: "Sep 28", isoDate: "2026-09-28" },
-  { key: "tuesday", label: "Tuesday", date: "Sep 29", isoDate: "2026-09-29" },
-  { key: "wednesday", label: "Wednesday", date: "Sep 30", isoDate: "2026-09-30" },
-  { key: "thursday", label: "Thursday", date: "Oct 1", isoDate: "2026-10-01", today: true },
-  { key: "friday", label: "Friday", date: "Oct 2", isoDate: "2026-10-02" },
-  { key: "saturday", label: "Saturday", date: "Oct 3", isoDate: "2026-10-03" },
-  { key: "sunday", label: "Sunday", date: "Oct 4", isoDate: "2026-10-04" },
+const weekdayKeys = [
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+  "saturday",
+  "sunday",
 ];
+
+function torontoDateIso() {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Toronto",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${values.year}-${values.month}-${values.day}`;
+}
+
+function addDays(isoDate: string, amount: number) {
+  const date = new Date(`${isoDate}T12:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + amount);
+  return date.toISOString().slice(0, 10);
+}
+
+function startOfWeek(isoDate: string) {
+  const weekday = new Date(`${isoDate}T12:00:00Z`).getUTCDay();
+  return addDays(isoDate, -((weekday + 6) % 7));
+}
+
+function createWeekDays(weekStart: string): PlannerDay[] {
+  const today = torontoDateIso();
+  return weekdayKeys.map((key, index) => {
+    const isoDate = addDays(weekStart, index);
+    const date = new Date(`${isoDate}T12:00:00Z`);
+    return {
+      key,
+      label: new Intl.DateTimeFormat("en-US", {
+        weekday: "long",
+        timeZone: "UTC",
+      }).format(date),
+      date: new Intl.DateTimeFormat("en-US", {
+        month: "short",
+        day: "numeric",
+        timeZone: "UTC",
+      }).format(date),
+      isoDate,
+      today: isoDate === today,
+    };
+  });
+}
+
+function formatWeekRange(days: PlannerDay[]) {
+  const start = new Date(`${days[0].isoDate}T12:00:00Z`);
+  const end = new Date(`${days[6].isoDate}T12:00:00Z`);
+  const startLabel = new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  }).format(start);
+  const endLabel = new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(end);
+  return `${startLabel} – ${endLabel}`;
+}
 
 const dishDefaults = {
   description: "Freshly prepared by the cafeteria team.",
@@ -104,7 +172,7 @@ const initialDishes: Dish[] = [
   },
 ];
 
-function createEmptySchedule(slots: MealSlot[]) {
+function createEmptySchedule(days: PlannerDay[], slots: MealSlot[]) {
   return Object.fromEntries(
     days.map((day) => [
       day.key,
@@ -113,7 +181,7 @@ function createEmptySchedule(slots: MealSlot[]) {
   ) as Schedule;
 }
 
-function createDefaultScheduleTimes(slots: MealSlot[]) {
+function createDefaultScheduleTimes(days: PlannerDay[], slots: MealSlot[]) {
   return Object.fromEntries(
     days.map((day) => [
       day.key,
@@ -127,8 +195,12 @@ function createDefaultScheduleTimes(slots: MealSlot[]) {
   ) as ScheduleTimes;
 }
 
-function normalizeSchedule(value: Partial<Schedule> | undefined, slots: MealSlot[]): Schedule {
-  const normalized = createEmptySchedule(slots);
+function normalizeSchedule(
+  value: Partial<Schedule> | undefined,
+  days: PlannerDay[],
+  slots: MealSlot[],
+): Schedule {
+  const normalized = createEmptySchedule(days, slots);
 
   days.forEach((day) => {
     slots.forEach((slot) => {
@@ -140,25 +212,6 @@ function normalizeSchedule(value: Partial<Schedule> | undefined, slots: MealSlot
   return normalized;
 }
 
-const initialSchedule: Schedule = {
-  ...createEmptySchedule(defaultMealSlots),
-  monday: {
-    Breakfast: [initialDishes[3]],
-    Lunch: [initialDishes[0], initialDishes[2]],
-    Dinner: [initialDishes[1]],
-  },
-  tuesday: {
-    Breakfast: [initialDishes[3]],
-    Lunch: [initialDishes[4], initialDishes[2]],
-    Dinner: [initialDishes[0]],
-  },
-  thursday: {
-    Breakfast: [initialDishes[3]],
-    Lunch: [initialDishes[0], initialDishes[2]],
-    Dinner: [initialDishes[1]],
-  },
-};
-
 type DragPayload = {
   dishId: string;
   fromDay?: string;
@@ -166,11 +219,18 @@ type DragPayload = {
 };
 
 export function WeeklyPlanner() {
+  const [weekStart, setWeekStart] = useState(() => startOfWeek(torontoDateIso()));
+  const days = useMemo(() => createWeekDays(weekStart), [weekStart]);
   const [dishes, setDishes] = useState(initialDishes);
-  const [schedule, setSchedule] = useState(initialSchedule);
+  const [schedule, setSchedule] = useState(() =>
+    createEmptySchedule(createWeekDays(startOfWeek(torontoDateIso())), defaultMealSlots),
+  );
   const [mealSlots, setMealSlots] = useState(defaultMealSlots);
   const [mealTimes, setMealTimes] = useState(() =>
-    createDefaultScheduleTimes(defaultMealSlots),
+    createDefaultScheduleTimes(
+      createWeekDays(startOfWeek(torontoDateIso())),
+      defaultMealSlots,
+    ),
   );
   const [search, setSearch] = useState("");
   const [showDishForm, setShowDishForm] = useState(false);
@@ -195,7 +255,7 @@ export function WeeklyPlanner() {
       process.env.NEXT_PUBLIC_SUPABASE_URL &&
       process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
     ) {
-      fetch("/api/admin/schedule?start=2026-09-28&end=2026-10-04")
+      fetch(`/api/admin/schedule?start=${days[0].isoDate}&end=${days[6].isoDate}`)
         .then((response) => response.json())
         .then(
           (payload: {
@@ -242,8 +302,8 @@ export function WeeklyPlanner() {
             const remoteMealSlots = payload.mealPeriods?.length
               ? payload.mealPeriods
               : defaultMealSlots;
-            const remoteSchedule = createEmptySchedule(remoteMealSlots);
-            const remoteMealTimes = createDefaultScheduleTimes(remoteMealSlots);
+            const remoteSchedule = createEmptySchedule(days, remoteMealSlots);
+            const remoteMealTimes = createDefaultScheduleTimes(days, remoteMealSlots);
             days.forEach((day) => {
               remoteMealSlots.forEach((slot) => {
                 remoteSchedule[day.key][slot.name] = (
@@ -277,6 +337,7 @@ export function WeeklyPlanner() {
           setSchedule(
             normalizeSchedule(
               JSON.parse(savedSchedule) as Partial<Schedule>,
+              days,
               defaultMealSlots,
             ),
           );
@@ -287,7 +348,7 @@ export function WeeklyPlanner() {
       });
       return () => window.cancelAnimationFrame(frame);
     }
-  }, []);
+  }, [days]);
 
   const filteredDishes = useMemo(
     () =>
@@ -544,13 +605,23 @@ export function WeeklyPlanner() {
         </div>
         <div className="flex shrink-0 flex-col items-stretch gap-3 sm:flex-row sm:items-center">
           <div className="flex shrink-0 items-center gap-3">
-            <button className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-ink/10 bg-white">
+            <button
+              type="button"
+              onClick={() => setWeekStart((current) => addDays(current, -7))}
+              className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-ink/10 bg-white"
+              aria-label="Previous week"
+            >
               <ChevronLeft size={18} />
             </button>
             <div className="whitespace-nowrap rounded-full border border-ink/10 bg-white px-5 py-3 text-sm font-bold">
-              Sep 28 – Oct 4, 2026
+              {formatWeekRange(days)}
             </div>
-            <button className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-ink/10 bg-white">
+            <button
+              type="button"
+              onClick={() => setWeekStart((current) => addDays(current, 7))}
+              className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-ink/10 bg-white"
+              aria-label="Next week"
+            >
               <ChevronRight size={18} />
             </button>
           </div>
