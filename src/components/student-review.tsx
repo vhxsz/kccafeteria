@@ -65,6 +65,7 @@ function StarRating({
 
 export function StudentReview({ experience }: { experience: TableExperience }) {
   const [rating, setRating] = useState(0);
+  const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
   const [itemRatings, setItemRatings] = useState<Record<string, number>>({});
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [comment, setComment] = useState("");
@@ -85,8 +86,26 @@ export function StudentReview({ experience }: { experience: TableExperience }) {
     );
   }
 
+  function toggleItem(itemId: string) {
+    setSelectedItemIds((current) => {
+      if (current.includes(itemId)) {
+        setItemRatings((ratings) => {
+          const next = { ...ratings };
+          delete next[itemId];
+          return next;
+        });
+        return current.filter((id) => id !== itemId);
+      }
+      return [...current, itemId];
+    });
+  }
+
+  const selectedItems = experience.items.filter((item) => selectedItemIds.includes(item.id));
+  const everySelectedItemIsRated = selectedItems.every((item) => (itemRatings[item.id] || 0) > 0);
+  const canSubmit = selectedItems.length > 0 && everySelectedItemIsRated && rating > 0;
+
   async function submitFeedback() {
-    if (!experience.meal || !experience.menuId || rating === 0) return;
+    if (!experience.meal || !experience.menuId || !canSubmit) return;
 
     setSubmitting(true);
     setError("");
@@ -99,9 +118,9 @@ export function StudentReview({ experience }: { experience: TableExperience }) {
           tagCode: experience.tagCode,
           menuId: experience.menuId,
           overallRating: rating,
-          itemRatings: Object.entries(itemRatings).map(([foodItemId, itemRating]) => ({
+          itemRatings: selectedItemIds.map((foodItemId) => ({
             foodItemId,
-            rating: itemRating,
+            rating: itemRatings[foodItemId],
           })),
           tags: selectedTags,
           comment,
@@ -174,6 +193,7 @@ export function StudentReview({ experience }: { experience: TableExperience }) {
             type="button"
             onClick={() => {
               setRating(0);
+              setSelectedItemIds([]);
               setItemRatings({});
               setSelectedTags([]);
               setComment("");
@@ -244,19 +264,52 @@ export function StudentReview({ experience }: { experience: TableExperience }) {
             </div>
           </div>
 
-          <div className="mt-8 grid grid-cols-2 gap-3">
-            {experience.items.map((item) => (
-              <article key={item.id} className="rounded-2xl bg-white p-3 text-ink">
-                <div
-                  className="mb-3 h-24 rounded-xl bg-sage/40 bg-cover bg-center"
-                  style={{ backgroundImage: "url(" + item.imageUrl + ")" }}
-                  role="img"
-                  aria-label={item.name}
-                />
-                <p className="font-bold leading-tight">{item.name}</p>
-                <p className="mt-1 text-xs text-ink/45">{item.category}</p>
-              </article>
-            ))}
+          <div className="mt-8">
+            <div className="mb-3 flex items-end justify-between gap-3">
+              <div>
+                <p className="font-bold">What did you eat?</p>
+                <p className="mt-0.5 text-xs text-white/65">Select every item you tried.</p>
+              </div>
+              <p className="text-xs font-semibold text-sun">
+                {selectedItemIds.length} selected
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-3" id="served-items">
+              {experience.items.map((item) => {
+                const selected = selectedItemIds.includes(item.id);
+                return (
+                  <button
+                    type="button"
+                    key={item.id}
+                    aria-pressed={selected}
+                    onClick={() => toggleItem(item.id)}
+                    className={
+                      "relative rounded-2xl p-3 text-left text-ink transition active:scale-[.98] " +
+                      (selected ? "bg-sun ring-2 ring-white" : "bg-white hover:bg-cream")
+                    }
+                  >
+                    <span
+                      className={
+                        "absolute right-5 top-5 z-10 grid h-7 w-7 place-items-center rounded-full border-2 " +
+                        (selected
+                          ? "border-moss bg-moss text-white"
+                          : "border-white bg-ink/25 text-transparent")
+                      }
+                    >
+                      <Check size={15} strokeWidth={3} />
+                    </span>
+                    <div
+                      className="mb-3 h-24 rounded-xl bg-sage/40 bg-cover bg-center"
+                      style={{ backgroundImage: "url(" + item.imageUrl + ")" }}
+                      role="img"
+                      aria-label={item.name}
+                    />
+                    <p className="font-bold leading-tight">{item.name}</p>
+                    <p className="mt-1 text-xs text-ink/45">{item.category}</p>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </section>
 
@@ -277,37 +330,51 @@ export function StudentReview({ experience }: { experience: TableExperience }) {
         </section>
 
         <section className="mt-6 rounded-[2rem] border border-ink/8 bg-white p-6 sm:p-8">
-          <h2 className="text-xl font-bold tracking-tight">Rate individual items</h2>
+          <h2 className="text-xl font-bold tracking-tight">Rate what you ate</h2>
           <p className="mt-1 text-sm text-ink/50">
-            Optional · Rate only the dishes you tried.
+            Give each selected item a rating before sending your feedback.
           </p>
-          <div className="mt-5 divide-y divide-ink/8">
-            {experience.items.map((item) => (
-              <div
-                key={item.id}
-                className="flex flex-col justify-between gap-3 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-center"
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className="h-12 w-12 shrink-0 rounded-xl bg-sage/40 bg-cover bg-center"
-                    style={{ backgroundImage: "url(" + item.imageUrl + ")" }}
-                  />
-                  <div>
-                    <p className="text-sm font-bold">{item.name}</p>
-                    <p className="text-xs text-ink/40">{item.category}</p>
+          {selectedItems.length === 0 ? (
+            <button
+              type="button"
+              onClick={() =>
+                document
+                  .getElementById("served-items")
+                  ?.scrollIntoView({ behavior: "smooth", block: "center" })
+              }
+              className="mt-5 w-full rounded-2xl border border-dashed border-ink/15 bg-cream/50 px-5 py-7 text-sm font-semibold text-ink/55 hover:border-moss/40"
+            >
+              Select the food and drinks you had above
+            </button>
+          ) : (
+            <div className="mt-5 divide-y divide-ink/8">
+              {selectedItems.map((item) => (
+                <div
+                  key={item.id}
+                  className="flex flex-col justify-between gap-3 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-center"
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="h-12 w-12 shrink-0 rounded-xl bg-sage/40 bg-cover bg-center"
+                      style={{ backgroundImage: "url(" + item.imageUrl + ")" }}
+                    />
+                    <div>
+                      <p className="text-sm font-bold">{item.name}</p>
+                      <p className="text-xs text-ink/40">{item.category}</p>
+                    </div>
                   </div>
+                  <StarRating
+                    compact
+                    value={itemRatings[item.id] || 0}
+                    onChange={(itemRating) =>
+                      setItemRatings((current) => ({ ...current, [item.id]: itemRating }))
+                    }
+                    label={"Rating for " + item.name}
+                  />
                 </div>
-                <StarRating
-                  compact
-                  value={itemRatings[item.id] || 0}
-                  onChange={(itemRating) =>
-                    setItemRatings((current) => ({ ...current, [item.id]: itemRating }))
-                  }
-                  label={"Rating for " + item.name}
-                />
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </section>
 
         <section className="mt-6 rounded-[2rem] border border-ink/8 bg-white p-6 sm:p-8">
@@ -367,7 +434,7 @@ export function StudentReview({ experience }: { experience: TableExperience }) {
       <div className="fixed inset-x-0 bottom-0 z-20 border-t border-ink/8 bg-white/92 p-4 backdrop-blur-xl">
         <button
           type="button"
-          disabled={rating === 0 || submitting}
+          disabled={!canSubmit || submitting}
           onClick={submitFeedback}
           className="mx-auto flex w-full max-w-2xl items-center justify-center gap-2 rounded-full bg-ink px-6 py-4 font-bold text-white transition enabled:hover:bg-moss disabled:cursor-not-allowed disabled:opacity-35"
         >
@@ -377,7 +444,14 @@ export function StudentReview({ experience }: { experience: TableExperience }) {
             </>
           ) : (
             <>
-              Send feedback <Send size={17} />
+              {selectedItems.length === 0
+                ? "Select what you ate"
+                : !everySelectedItemIsRated
+                  ? "Rate each selected item"
+                  : rating === 0
+                    ? "Add an overall rating"
+                    : "Send feedback"}
+              {canSubmit ? <Send size={17} /> : null}
             </>
           )}
         </button>

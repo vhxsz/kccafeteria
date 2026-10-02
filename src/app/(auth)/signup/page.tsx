@@ -1,8 +1,5 @@
-import type { Metadata } from "next";
-import { AuthForm } from "@/components/auth-form";
-
-export const metadata: Metadata = { title: "Create a school workspace" };
+import { redirect } from "next/navigation";
 
 export default function SignUpPage() {
-  return <AuthForm mode="signup" />;
+  redirect("/login");
 }
