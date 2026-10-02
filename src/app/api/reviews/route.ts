@@ -1,11 +1,11 @@
 import { createHash } from "node:crypto";
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { createServiceClient } from "@/lib/supabase/service";
+import { createClient } from "@/lib/supabase/server";
 
 const reviewSchema = z.object({
   tagCode: z.string().trim().min(3).max(64).regex(/^[a-zA-Z0-9_-]+$/),
-  menuId: z.string().min(1).max(100),
+  menuId: z.uuid(),
   overallRating: z.number().int().min(1).max(5),
   itemRatings: z
     .array(
@@ -27,22 +27,11 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: "Invalid feedback data." }, { status: 400 });
   }
 
-  const supabase = createServiceClient();
-
-  if (!supabase) {
-    return Response.json({ accepted: true, demo: true }, { status: 201 });
-  }
+  const supabase = await createClient();
 
   const forwardedFor = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
   const anonymousSignal = forwardedFor || request.headers.get("user-agent") || "unknown";
-  const secret = process.env.REVIEW_HASH_SECRET;
-
-  if (!secret) {
-    return Response.json(
-      { error: "Review security is not configured." },
-      { status: 503 },
-    );
-  }
+  const secret = process.env.REVIEW_HASH_SECRET || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
   const anonymousHash = createHash("sha256")
     .update(secret + ":" + anonymousSignal)

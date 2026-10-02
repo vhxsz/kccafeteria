@@ -13,14 +13,10 @@ type CafeteriaTable = {
   active: boolean;
 };
 
-const initialTables: CafeteriaTable[] = [
-  { id: "table-14", tableNumber: 14, tagCode: "tag14", area: "Main hall", active: true },
-  { id: "table-15", tableNumber: 15, tagCode: "tag15", area: "Main hall", active: true },
-  { id: "table-21", tableNumber: 21, tagCode: "tag21", area: "Window area", active: true },
-];
-
 export function TableTagManager() {
-  const [tables, setTables] = useState(initialTables);
+  const [tables, setTables] = useState<CafeteriaTable[]>([]);
+  const [loadingTables, setLoadingTables] = useState(true);
+  const [tableError, setTableError] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [copied, setCopied] = useState("");
   const [downloadingQr, setDownloadingQr] = useState("");
@@ -33,20 +29,31 @@ export function TableTagManager() {
       process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
     ) {
       fetch("/api/admin/tables")
-        .then((response) => response.json())
-        .then((payload: { tables?: CafeteriaTable[] }) => {
-          if (payload.tables) setTables(payload.tables);
+        .then(async (response) => {
+          const payload = (await response.json()) as {
+            tables?: CafeteriaTable[];
+            error?: string;
+          };
+          if (!response.ok || !payload.tables) {
+            throw new Error(payload.error || "The table tags could not be loaded.");
+          }
+          return payload.tables;
         })
-        .catch(() => undefined);
+        .then(setTables)
+        .catch((error: unknown) => {
+          setTableError(
+            error instanceof Error ? error.message : "The table tags could not be loaded.",
+          );
+        })
+        .finally(() => setLoadingTables(false));
       return;
     }
     const saved = localStorage.getItem("nourish-cafeteria-tables");
-    if (saved) {
-      const frame = window.requestAnimationFrame(() =>
-        setTables(JSON.parse(saved) as CafeteriaTable[]),
-      );
-      return () => window.cancelAnimationFrame(frame);
-    }
+    const frame = window.requestAnimationFrame(() => {
+      if (saved) setTables(JSON.parse(saved) as CafeteriaTable[]);
+      setLoadingTables(false);
+    });
+    return () => window.cancelAnimationFrame(frame);
   }, []);
 
   function persist(next: CafeteriaTable[]) {
@@ -200,6 +207,19 @@ export function TableTagManager() {
           <span className="text-right">Actions</span>
         </div>
         <div className="divide-y divide-ink/8">
+          {loadingTables ? (
+            <p className="px-6 py-10 text-center text-sm text-ink/45">Loading table tags…</p>
+          ) : null}
+          {!loadingTables && tableError ? (
+            <p className="m-5 rounded-2xl bg-red-50 p-4 text-sm font-semibold text-red-700" role="alert">
+              {tableError} Refresh the page or sign in again.
+            </p>
+          ) : null}
+          {!loadingTables && !tableError && tables.length === 0 ? (
+            <p className="px-6 py-10 text-center text-sm text-ink/45">
+              No table tags yet. Create the first one to generate a working public link and QR code.
+            </p>
+          ) : null}
           {tables.map((table) => (
             <article
               key={table.id}
