@@ -175,6 +175,9 @@ export function WeeklyPlanner() {
   const [search, setSearch] = useState("");
   const [showDishForm, setShowDishForm] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
+  const [dirtyTimeSlots, setDirtyTimeSlots] = useState<Set<string>>(() => new Set());
   const [dishImagePreview, setDishImagePreview] = useState("");
   const [dishFormError, setDishFormError] = useState("");
   const [isCreatingDish, setIsCreatingDish] = useState(false);
@@ -475,38 +478,54 @@ export function WeeklyPlanner() {
   }
 
   async function saveSchedule() {
-    localStorage.setItem("nourish-dishes", JSON.stringify(dishes));
-    localStorage.setItem("nourish-schedule", JSON.stringify(schedule));
-    localStorage.setItem("nourish-meal-times", JSON.stringify(mealTimes));
+    if (isSaving) return;
+    setIsSaving(true);
+    setSaveError("");
+    try {
+      if (
+        process.env.NEXT_PUBLIC_SUPABASE_URL &&
+        process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+      ) {
+        const scheduleByDate = Object.fromEntries(
+          days.map((day) => [
+            day.isoDate,
+            Object.fromEntries(
+              mealSlots.map((slot) => [
+                slot.name,
+                (schedule[day.key]?.[slot.name] || []).map((dish) => dish.id),
+              ]),
+            ),
+          ]),
+        );
+        const response = await fetch("/api/admin/schedule", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            schedule: scheduleByDate,
+            mealTimes: Object.fromEntries(
+              days.map((day) => [day.isoDate, mealTimes[day.key]]),
+            ),
+          }),
+        });
+        const payload = (await response.json().catch(() => ({}))) as { error?: string };
+        if (!response.ok) {
+          throw new Error(payload.error || "The schedule could not be saved.");
+        }
+      }
 
-    if (
-      process.env.NEXT_PUBLIC_SUPABASE_URL &&
-      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
-    ) {
-      const scheduleByDate = Object.fromEntries(
-        days.map((day) => [
-          day.isoDate,
-          Object.fromEntries(
-            mealSlots.map((slot) => [
-              slot.name,
-              schedule[day.key][slot.name].map((dish) => dish.id),
-            ]),
-          ),
-        ]),
+      localStorage.setItem("nourish-dishes", JSON.stringify(dishes));
+      localStorage.setItem("nourish-schedule", JSON.stringify(schedule));
+      localStorage.setItem("nourish-meal-times", JSON.stringify(mealTimes));
+      setSaved(true);
+      setDirtyTimeSlots(new Set());
+    } catch (error) {
+      setSaved(false);
+      setSaveError(
+        error instanceof Error ? error.message : "The schedule could not be saved.",
       );
-      const response = await fetch("/api/admin/schedule", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          schedule: scheduleByDate,
-          mealTimes: Object.fromEntries(
-            days.map((day) => [day.isoDate, mealTimes[day.key]]),
-          ),
-        }),
-      });
-      if (!response.ok) return;
+    } finally {
+      setIsSaving(false);
     }
-    setSaved(true);
   }
 
   return (
@@ -537,13 +556,20 @@ export function WeeklyPlanner() {
           </div>
           <button
             onClick={saveSchedule}
-            className="inline-flex h-11 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-full bg-ink px-5 text-sm font-bold text-white hover:bg-moss"
+            disabled={isSaving}
+            className="inline-flex h-11 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-full bg-ink px-5 text-sm font-bold text-white hover:bg-moss disabled:cursor-wait disabled:opacity-60"
           >
-            {saved ? <Check size={17} /> : null}
-            {saved ? "Schedule saved" : "Save schedule"}
+            {saved && !isSaving ? <Check size={17} /> : null}
+            {isSaving ? "Saving…" : saved ? "Schedule saved" : "Save schedule"}
           </button>
         </div>
       </div>
+
+      {saveError ? (
+        <p className="mt-5 rounded-2xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-700" role="alert">
+          {saveError}
+        </p>
+      ) : null}
 
       <div className="mt-8 grid gap-5 2xl:grid-cols-[280px_1fr]">
         <aside id="library" className="rounded-3xl border border-ink/8 bg-white p-5 shadow-sm">
@@ -646,6 +672,12 @@ export function WeeklyPlanner() {
                                 },
                               }));
                               setSaved(false);
+                              setSaveError("");
+                              setDirtyTimeSlots((current) => {
+                                const next = new Set(current);
+                                next.add(`${day.key}:${slot.name}`);
+                                return next;
+                              });
                             }}
                             className="min-w-0 flex-1 rounded-lg border border-ink/10 bg-cream/50 px-1.5 py-1 font-semibold outline-none focus:border-tomato"
                           />
@@ -667,10 +699,26 @@ export function WeeklyPlanner() {
                                 },
                               }));
                               setSaved(false);
+                              setSaveError("");
+                              setDirtyTimeSlots((current) => {
+                                const next = new Set(current);
+                                next.add(`${day.key}:${slot.name}`);
+                                return next;
+                              });
                             }}
                             className="min-w-0 flex-1 rounded-lg border border-ink/10 bg-cream/50 px-1.5 py-1 font-semibold outline-none focus:border-tomato"
                           />
                         </div>
+                        {dirtyTimeSlots.has(`${day.key}:${slot.name}`) ? (
+                          <button
+                            type="button"
+                            onClick={saveSchedule}
+                            disabled={isSaving}
+                            className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-tomato px-3 py-2 text-xs font-bold text-white transition hover:bg-ink disabled:cursor-wait disabled:opacity-60"
+                          >
+                            {isSaving ? "Saving time…" : "Save time"}
+                          </button>
+                        ) : null}
                       </div>
                       <div className="space-y-2">
                         {(schedule[day.key]?.[slot.name] || []).map((dish) => (
