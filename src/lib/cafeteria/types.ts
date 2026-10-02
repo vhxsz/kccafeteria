@@ -11,6 +11,11 @@ export type MenuFoodItem = {
   name: string;
   category: FoodCategory;
   imageUrl: string;
+  description?: string;
+  ingredients?: string[];
+  allergens?: string[];
+  dietaryInformation?: string[];
+  servingSize?: string;
 };
 
 export type MealExperience = {
@@ -30,5 +35,26 @@ export type TableExperience = {
   meal: MealExperience | null;
   menuId: string | null;
   items: MenuFoodItem[];
+  isDemo?: boolean;
+};
+
+export type StudentMenuDay = {
+  serviceDate: string;
+  meals: Array<{
+    id: string;
+    name: string;
+    startsAt: string;
+    endsAt: string;
+    items: MenuFoodItem[];
+  }>;
+};
+
+export type StudentWeekMenu = {
+  schoolName: string;
+  cafeteriaName: string;
+  tagCode: string;
+  timezone: string;
+  weekStart: string;
+  days: StudentMenuDay[];
   isDemo?: boolean;
 };

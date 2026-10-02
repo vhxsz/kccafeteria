@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import {
+  CalendarDays,
   Check,
   ChevronLeft,
   Clock3,
@@ -210,6 +211,13 @@ export function StudentReview({ experience }: { experience: TableExperience }) {
       </header>
 
       <div className="mx-auto max-w-2xl px-5 py-8">
+        <Link
+          href={`/site/menu/${experience.tagCode}`}
+          className="mb-5 flex items-center justify-between rounded-2xl border border-ink/8 bg-white px-5 py-4 font-bold shadow-sm transition hover:border-moss/35"
+        >
+          <span className="inline-flex items-center gap-2"><CalendarDays size={19} className="text-moss" /> View the 7-day menu</span>
+          <span className="text-sm text-ink/40">Day &amp; week views</span>
+        </Link>
         <section className="rounded-[2rem] bg-moss p-6 text-white sm:p-8">
           <div className="flex items-start justify-between gap-5">
             <div>

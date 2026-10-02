@@ -21,7 +21,10 @@ export async function getTableExperience(tagCode: string): Promise<TableExperien
       return null;
     }
 
-    return data as TableExperience;
+    if (!data && tagCode.toLowerCase() === "tag14") {
+      return getDemoExperience(tagCode);
+    }
+    return data as TableExperience | null;
   } catch (error) {
     console.error("Unable to initialize Supabase:", error);
     return getDemoExperience(tagCode);

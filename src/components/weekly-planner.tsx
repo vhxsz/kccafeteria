@@ -18,6 +18,11 @@ type Dish = {
   name: string;
   category: string;
   imageUrl: string;
+  description: string;
+  ingredients: string[];
+  allergens: string[];
+  dietaryInformation: string[];
+  servingSize: string;
 };
 
 type MealName = "Breakfast" | "Lunch" | "Dinner";
@@ -29,7 +34,17 @@ const days = [
   { key: "wednesday", label: "Wednesday", date: "Sep 30", isoDate: "2026-09-30" },
   { key: "thursday", label: "Thursday", date: "Oct 1", isoDate: "2026-10-01", today: true },
   { key: "friday", label: "Friday", date: "Oct 2", isoDate: "2026-10-02" },
+  { key: "saturday", label: "Saturday", date: "Oct 3", isoDate: "2026-10-03" },
+  { key: "sunday", label: "Sunday", date: "Oct 4", isoDate: "2026-10-04" },
 ];
+
+const dishDefaults = {
+  description: "Freshly prepared by the cafeteria team.",
+  ingredients: [] as string[],
+  allergens: [] as string[],
+  dietaryInformation: [] as string[],
+  servingSize: "",
+};
 
 const mealSlots: Array<{ name: MealName; time: string }> = [
   { name: "Breakfast", time: "6:30 – 10:00" },
@@ -42,6 +57,7 @@ const initialDishes: Dish[] = [
     id: "dish-chicken",
     name: "Grilled chicken",
     category: "Main dish",
+    ...dishDefaults,
     imageUrl:
       "https://images.unsplash.com/photo-1532550907401-a500c9a57435?auto=format&fit=crop&w=640&q=80",
   },
@@ -49,6 +65,7 @@ const initialDishes: Dish[] = [
     id: "dish-pasta",
     name: "Tomato basil pasta",
     category: "Main dish",
+    ...dishDefaults,
     imageUrl:
       "https://images.unsplash.com/photo-1473093295043-cdd812d0e601?auto=format&fit=crop&w=640&q=80",
   },
@@ -56,6 +73,7 @@ const initialDishes: Dish[] = [
     id: "dish-salad",
     name: "Garden salad",
     category: "Vegetable",
+    ...dishDefaults,
     imageUrl:
       "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=640&q=80",
   },
@@ -63,6 +81,7 @@ const initialDishes: Dish[] = [
     id: "dish-eggs",
     name: "Scrambled eggs",
     category: "Breakfast",
+    ...dishDefaults,
     imageUrl:
       "https://images.unsplash.com/photo-1525351484163-7529414344d8?auto=format&fit=crop&w=640&q=80",
   },
@@ -70,6 +89,7 @@ const initialDishes: Dish[] = [
     id: "dish-pizza",
     name: "Vegetable pizza",
     category: "Main dish",
+    ...dishDefaults,
     imageUrl:
       "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=640&q=80",
   },
@@ -119,7 +139,7 @@ export function WeeklyPlanner() {
       process.env.NEXT_PUBLIC_SUPABASE_URL &&
       process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
     ) {
-      fetch("/api/admin/schedule?start=2026-09-28&end=2026-10-02")
+      fetch("/api/admin/schedule?start=2026-09-28&end=2026-10-04")
         .then((response) => response.json())
         .then(
           (payload: {
@@ -128,6 +148,11 @@ export function WeeklyPlanner() {
               name: string;
               category: string;
               image_url: string | null;
+              description: string | null;
+              ingredients: string[];
+              allergens: string[];
+              dietary_information: string[];
+              serving_size: string | null;
             }>;
             schedule?: Record<string, Record<string, string[]>>;
           }) => {
@@ -149,6 +174,11 @@ export function WeeklyPlanner() {
               imageUrl:
                 dish.image_url ||
                 "https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=640&q=80",
+              description: dish.description || "",
+              ingredients: dish.ingredients || [],
+              allergens: dish.allergens || [],
+              dietaryInformation: dish.dietary_information || [],
+              servingSize: dish.serving_size || "",
             }));
             const dishMap = new Map(remoteDishes.map((dish) => [dish.id, dish]));
             const remoteSchedule = structuredClone(emptySchedule);
@@ -245,6 +275,11 @@ export function WeeklyPlanner() {
       imageUrl:
         String(form.get("imageUrl") || "").trim() ||
         "https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=640&q=80",
+      description: String(form.get("description") || "").trim(),
+      ingredients: String(form.get("ingredients") || "").split(",").map((item) => item.trim()).filter(Boolean),
+      allergens: form.getAll("allergens").map(String),
+      dietaryInformation: form.getAll("dietaryInformation").map(String),
+      servingSize: String(form.get("servingSize") || "").trim(),
     };
 
     if (
@@ -267,17 +302,31 @@ export function WeeklyPlanner() {
           name: dish.name,
           category: categoryValues[dish.category] || "other",
           imageUrl: String(form.get("imageUrl") || "").trim(),
+          description: dish.description,
+          ingredients: dish.ingredients,
+          allergens: dish.allergens,
+          dietaryInformation: dish.dietaryInformation,
+          servingSize: dish.servingSize,
         }),
       });
       const payload = (await response.json()) as {
-        dish?: { id: string; name: string; category: string; image_url: string | null };
+        dish?: {
+          id: string; name: string; category: string; image_url: string | null;
+          description: string | null; ingredients: string[]; allergens: string[];
+          dietary_information: string[]; serving_size: string | null;
+        };
       };
       if (!response.ok || !payload.dish) return;
       dish = {
         id: payload.dish.id,
         name: payload.dish.name,
-        category: categoryValues[payload.dish.category] || dish.category,
+        category: Object.entries(categoryValues).find(([, value]) => value === payload.dish?.category)?.[0] || dish.category,
         imageUrl: payload.dish.image_url || dish.imageUrl,
+        description: payload.dish.description || "",
+        ingredients: payload.dish.ingredients || [],
+        allergens: payload.dish.allergens || [],
+        dietaryInformation: payload.dish.dietary_information || [],
+        servingSize: payload.dish.serving_size || "",
       };
     }
     setDishes((current) => [...current, dish]);
@@ -332,7 +381,7 @@ export function WeeklyPlanner() {
             <ChevronLeft size={18} />
           </button>
           <div className="rounded-full border border-ink/10 bg-white px-5 py-3 text-sm font-bold">
-            Sep 28 – Oct 2, 2026
+            Sep 28 – Oct 4, 2026
           </div>
           <button className="grid h-11 w-11 place-items-center rounded-full border border-ink/10 bg-white">
             <ChevronRight size={18} />
@@ -398,7 +447,7 @@ export function WeeklyPlanner() {
         </aside>
 
         <div className="overflow-x-auto rounded-3xl border border-ink/8 bg-white shadow-sm">
-          <div className="grid min-w-[1120px] grid-cols-5">
+          <div className="grid min-w-[1540px] grid-cols-7">
             {days.map((day) => (
               <section key={day.key} className="border-r border-ink/8 last:border-r-0">
                 <header className={"border-b border-ink/8 p-4 " + (day.today ? "bg-sun/20" : "")}>
@@ -445,6 +494,7 @@ export function WeeklyPlanner() {
                             <div className="p-3">
                               <p className="text-sm font-bold leading-tight">{dish.name}</p>
                               <p className="mt-1 text-[11px] text-ink/40">{dish.category}</p>
+                              {dish.servingSize ? <p className="mt-1 text-[10px] text-ink/35">{dish.servingSize}</p> : null}
                             </div>
                             <button
                               onClick={() => removeDish(day.key, slot.name, dish.id)}
@@ -474,7 +524,7 @@ export function WeeklyPlanner() {
         <div className="fixed inset-0 z-50 grid place-items-center bg-ink/35 p-5 backdrop-blur-sm">
           <form
             onSubmit={addDish}
-            className="w-full max-w-md rounded-[2rem] bg-white p-6 shadow-2xl sm:p-8"
+            className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-[2rem] bg-white p-6 shadow-2xl sm:p-8"
           >
             <div className="flex items-start justify-between">
               <div>
@@ -498,6 +548,36 @@ export function WeeklyPlanner() {
                 className="mt-2 h-12 w-full rounded-xl border border-ink/10 px-4 font-normal outline-none focus:border-moss"
               />
             </label>
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <label className="block text-sm font-bold">
+                Serving size <span className="font-normal text-ink/40">Optional</span>
+                <input name="servingSize" placeholder="e.g. 250 g or 1 bowl" className="mt-2 h-12 w-full rounded-xl border border-ink/10 px-4 font-normal outline-none focus:border-moss" />
+              </label>
+              <label className="block text-sm font-bold">
+                Ingredients <span className="font-normal text-ink/40">Comma separated</span>
+                <input name="ingredients" placeholder="Chicken, lemon, herbs" className="mt-2 h-12 w-full rounded-xl border border-ink/10 px-4 font-normal outline-none focus:border-moss" />
+              </label>
+            </div>
+            <label className="mt-4 block text-sm font-bold">
+              Description
+              <textarea name="description" rows={3} maxLength={500} placeholder="Describe the flavor, preparation, and key ingredients." className="mt-2 w-full rounded-xl border border-ink/10 px-4 py-3 font-normal outline-none focus:border-moss" />
+            </label>
+            <fieldset className="mt-4">
+              <legend className="text-sm font-bold">Allergens</legend>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {["Gluten", "Dairy", "Eggs", "Peanuts", "Tree nuts", "Soy", "Fish", "Shellfish"].map((item) => (
+                  <label key={item} className="flex items-center gap-2 rounded-full border border-ink/10 px-3 py-2 text-xs font-semibold"><input type="checkbox" name="allergens" value={item} /> {item}</label>
+                ))}
+              </div>
+            </fieldset>
+            <fieldset className="mt-4">
+              <legend className="text-sm font-bold">Dietary information</legend>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {["Vegetarian", "Vegan", "Halal", "Kosher", "Gluten-free", "Dairy-free"].map((item) => (
+                  <label key={item} className="flex items-center gap-2 rounded-full border border-ink/10 px-3 py-2 text-xs font-semibold"><input type="checkbox" name="dietaryInformation" value={item} /> {item}</label>
+                ))}
+              </div>
+            </fieldset>
             <label className="mt-4 block text-sm font-bold">
               Category
               <select

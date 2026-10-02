@@ -22,7 +22,7 @@ export async function GET(request: Request) {
   const [dishesResult, mealsResult, menusResult] = await Promise.all([
     context.supabase
       .from("food_items")
-      .select("id, name, category, image_url")
+      .select("id, name, category, image_url, description, ingredients, allergens, dietary_information, serving_size")
       .eq("school_id", context.schoolId)
       .eq("active", true)
       .order("name"),

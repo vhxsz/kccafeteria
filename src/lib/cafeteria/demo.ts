@@ -1,4 +1,8 @@
-import type { FoodCategory, TableExperience } from "@/lib/cafeteria/types";
+import type {
+  FoodCategory,
+  StudentWeekMenu,
+  TableExperience,
+} from "@/lib/cafeteria/types";
 
 const weeklyMenus: Record<
   string,
@@ -58,11 +62,15 @@ export function getDemoExperience(tagCode: string): TableExperience {
     }) ?? null;
   const items = meal
     ? weeklyMenus.weekday[meal.name].map(([name, category, imageUrl], index) => ({
-        id: "demo-item-" + index,
-        name,
-        category,
-        imageUrl,
-      }))
+      id: "demo-item-" + index,
+      name,
+      category,
+      imageUrl,
+      description: "Prepared fresh by the cafeteria team.",
+      ingredients: name === "Grilled chicken" ? ["Chicken", "Lemon", "Herbs"] : [],
+      allergens: name.includes("bread") || name.includes("pasta") ? ["Gluten"] : [],
+      dietaryInformation: category === "Vegetable" || category === "Fruit" ? ["Vegetarian"] : [],
+    }))
     : [];
   const tableMatch = tagCode.match(/\d+/);
 
@@ -76,6 +84,52 @@ export function getDemoExperience(tagCode: string): TableExperience {
     meal,
     menuId: meal ? "demo-menu-" + meal.name.toLowerCase() : null,
     items,
+    isDemo: true,
+  };
+}
+
+function toIsoDate(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+
+export function getDemoWeekMenu(tagCode: string, weekStart: string): StudentWeekMenu {
+  const firstDay = new Date(weekStart + "T12:00:00Z");
+  const days = Array.from({ length: 7 }, (_, dayIndex) => {
+    const date = new Date(firstDay);
+    date.setUTCDate(firstDay.getUTCDate() + dayIndex);
+
+    return {
+      serviceDate: toIsoDate(date),
+      meals: mealWindows.map((meal, mealIndex) => ({
+        ...meal,
+        items: weeklyMenus.weekday[meal.name].map(
+          ([name, category, imageUrl], itemIndex) => ({
+            id: `demo-${dayIndex}-${mealIndex}-${itemIndex}`,
+            name,
+            category,
+            imageUrl,
+            description: "Prepared fresh by the cafeteria team.",
+            ingredients:
+              name === "Grilled chicken" ? ["Chicken", "Lemon", "Herbs"] : [],
+            allergens:
+              name.toLowerCase().includes("bread") || name.toLowerCase().includes("pasta")
+                ? ["Gluten"]
+                : [],
+            dietaryInformation:
+              category === "Vegetable" || category === "Fruit" ? ["Vegetarian"] : [],
+          }),
+        ),
+      })),
+    };
+  });
+
+  return {
+    schoolName: "Greenwood School",
+    cafeteriaName: "Main cafeteria",
+    tagCode,
+    timezone: "America/Toronto",
+    weekStart,
+    days,
     isDemo: true,
   };
 }
