@@ -105,7 +105,7 @@ export function StudentMenu({ menu }: { menu: StudentWeekMenu }) {
       <header className="border-b border-ink/8 bg-moss text-white">
         <div className="mx-auto max-w-6xl px-5 py-6 sm:px-8">
           <div className="flex items-center justify-between">
-            <Link href={`/site/rate/${menu.tagCode}`} className="grid h-10 w-10 place-items-center rounded-full bg-white/10" aria-label="Back to meal rating">
+            <Link href="/" className="grid h-10 w-10 place-items-center rounded-full bg-white/10" aria-label="Back to home">
               <ChevronLeft size={20} />
             </Link>
             <div className="text-center">

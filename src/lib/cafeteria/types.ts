@@ -35,6 +35,7 @@ export type TableExperience = {
   meal: MealExperience | null;
   menuId: string | null;
   items: MenuFoodItem[];
+  isCurrentMeal?: boolean;
   isDemo?: boolean;
 };
 

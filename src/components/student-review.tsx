@@ -77,6 +77,7 @@ export function StudentReview({ experience }: { experience: TableExperience }) {
     month: "long",
     day: "numeric",
   }).format(new Date(experience.serviceDate + "T12:00:00"));
+  const isCurrentMeal = experience.isCurrentMeal !== false;
 
   function toggleTag(tag: string) {
     setSelectedTags((current) =>
@@ -139,7 +140,7 @@ export function StudentReview({ experience }: { experience: TableExperience }) {
             No meal is being served right now.
           </h1>
           <p className="mx-auto mt-4 max-w-sm leading-7 text-ink/60">
-            Come back during the next scheduled meal to see the menu and share feedback.
+            No published meal is available to review yet. Check the weekly menu or come back later.
           </p>
           <Link
             href="/"
@@ -223,7 +224,7 @@ export function StudentReview({ experience }: { experience: TableExperience }) {
             <div>
               <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-xs font-bold uppercase tracking-[.14em] text-sun">
                 <span className="h-2 w-2 rounded-full bg-sun" />
-                Serving now
+                {isCurrentMeal ? "Serving now" : "Last served meal"}
               </div>
               <h1 className="mt-5 text-4xl font-bold tracking-[-0.045em]">
                 {experience.meal.name}
@@ -231,6 +232,11 @@ export function StudentReview({ experience }: { experience: TableExperience }) {
               <p className="mt-2 text-sm text-white/65">
                 {experience.meal.startsAt} – {experience.meal.endsAt} · {formattedDate}
               </p>
+              {!isCurrentMeal ? (
+                <p className="mt-3 max-w-sm text-sm leading-6 text-white/75">
+                  Meal service has ended, but you can still share feedback about the most recent meal.
+                </p>
+              ) : null}
             </div>
             <div className="rounded-2xl bg-white/10 p-3 text-center">
               <p className="text-xs font-semibold uppercase tracking-wider text-white/60">Table</p>
