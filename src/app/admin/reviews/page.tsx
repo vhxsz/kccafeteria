@@ -23,6 +23,19 @@ type ReviewRecord = {
   table_id: string | null;
 };
 
+type FoodRecord = {
+  id: string;
+  name: string;
+  category: string;
+  image_url: string | null;
+};
+
+type ReviewItemRecord = {
+  review_id: string;
+  food_item_id: string;
+  rating: number | null;
+};
+
 function localDateKey(value: Date | string, timezone: string) {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: timezone,
@@ -90,7 +103,7 @@ export default async function ReviewsPage() {
           .in("review_id", reviewIds),
         context.supabase
           .from("food_items")
-          .select("id, name")
+          .select("id, name, category, image_url")
           .eq("school_id", context.schoolId),
       ])
     : [
@@ -116,7 +129,9 @@ export default async function ReviewsPage() {
     (tablesResult.data || []).map((table) => [table.id, table.table_number]),
   );
   const tagNames = new Map((tagsResult.data || []).map((tag) => [tag.id, tag.name]));
-  const foodNames = new Map((foodsResult.data || []).map((food) => [food.id, food.name]));
+  const foods = (foodsResult.data || []) as FoodRecord[];
+  const reviewItems = (reviewItemsResult.data || []) as ReviewItemRecord[];
+  const foodDetails = new Map(foods.map((food) => [food.id, food]));
 
   const tagsByReview = new Map<string, string[]>();
   for (const relation of reviewTagsResult.data || []) {
@@ -128,15 +143,44 @@ export default async function ReviewsPage() {
   }
 
   const itemsByReview = new Map<string, Array<{ name: string; rating: number }>>();
-  for (const item of reviewItemsResult.data || []) {
+  for (const item of reviewItems) {
     if (!item.rating) continue;
     const current = itemsByReview.get(item.review_id) || [];
     current.push({
-      name: foodNames.get(item.food_item_id) || "Menu item",
+      name: foodDetails.get(item.food_item_id)?.name || "Menu item",
       rating: item.rating,
     });
     itemsByReview.set(item.review_id, current);
   }
+
+  const ratingTotals = new Map<string, { total: number; count: number }>();
+  for (const item of reviewItems) {
+    if (!item.rating) continue;
+    const current = ratingTotals.get(item.food_item_id) || { total: 0, count: 0 };
+    current.total += item.rating;
+    current.count += 1;
+    ratingTotals.set(item.food_item_id, current);
+  }
+
+  const rankedFoods = Array.from(ratingTotals.entries())
+    .map(([foodItemId, totals]) => {
+      const food = foodDetails.get(foodItemId);
+      return {
+        id: foodItemId,
+        name: food?.name || "Menu item",
+        category: food?.category || "other",
+        imageUrl: food?.image_url,
+        average: totals.total / totals.count,
+        votes: totals.count,
+      };
+    })
+    .sort(
+      (first, second) =>
+        second.average - first.average ||
+        second.votes - first.votes ||
+        first.name.localeCompare(second.name),
+    );
+  const unratedFoodCount = Math.max(foods.length - rankedFoods.length, 0);
 
   const metrics = [
     {
@@ -197,6 +241,83 @@ export default async function ReviewsPage() {
               </p>
             </article>
           ))}
+        </section>
+
+        <section className="mt-5 overflow-hidden rounded-3xl border border-ink/8 bg-white shadow-sm">
+          <div className="flex flex-col gap-3 border-b border-ink/8 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-7">
+            <div>
+              <p className="text-sm text-ink/45">Highest to lowest · all time</p>
+              <h2 className="mt-1 text-xl font-bold">Food ranking</h2>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 text-xs font-bold">
+              <span className="rounded-full bg-sun px-3 py-1.5 text-moss">
+                {rankedFoods.length} rated dish{rankedFoods.length === 1 ? "" : "es"}
+              </span>
+              {unratedFoodCount ? (
+                <span className="rounded-full bg-ink/5 px-3 py-1.5 text-ink/45">
+                  {unratedFoodCount} awaiting ratings
+                </span>
+              ) : null}
+            </div>
+          </div>
+
+          {rankedFoods.length ? (
+            <ol className="divide-y divide-ink/8">
+              {rankedFoods.map((food, index) => (
+                <li
+                  key={food.id}
+                  className="grid grid-cols-[42px_52px_minmax(0,1fr)_auto] items-center gap-3 px-5 py-4 sm:grid-cols-[48px_56px_minmax(0,1fr)_130px_auto] sm:gap-4 sm:px-7"
+                >
+                  <span
+                    className={
+                      "grid h-9 w-9 place-items-center rounded-full text-sm font-bold " +
+                      (index === 0
+                        ? "bg-moss text-white"
+                        : index < 3
+                          ? "bg-sun text-moss"
+                          : "bg-ink/5 text-ink/55")
+                    }
+                    aria-label={`Rank ${index + 1}`}
+                  >
+                    {index + 1}
+                  </span>
+                  <div
+                    className="h-12 w-12 rounded-2xl bg-sage/30 bg-cover bg-center sm:h-14 sm:w-14"
+                    style={food.imageUrl ? { backgroundImage: `url(${food.imageUrl})` } : undefined}
+                    role={food.imageUrl ? "img" : undefined}
+                    aria-label={food.imageUrl ? food.name : undefined}
+                  />
+                  <div className="min-w-0">
+                    <p className="truncate font-bold">{food.name}</p>
+                    <p className="mt-1 text-xs capitalize text-ink/40">
+                      {food.category.replaceAll("_", " ")} · {food.votes} vote
+                      {food.votes === 1 ? "" : "s"}
+                    </p>
+                  </div>
+                  <div className="hidden sm:block">
+                    <div className="h-2 overflow-hidden rounded-full bg-ink/8">
+                      <div
+                        className="h-full rounded-full bg-tomato"
+                        style={{ width: `${(food.average / 5) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex min-w-14 items-center justify-end gap-1 font-bold tabular-nums">
+                    <Star size={16} className="fill-tomato text-tomato" />
+                    {food.average.toFixed(1)}
+                  </div>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <div className="px-6 py-12 text-center">
+              <UtensilsCrossed size={28} className="mx-auto text-moss" />
+              <h3 className="mt-4 text-lg font-bold">No food ratings yet</h3>
+              <p className="mt-2 text-sm text-ink/50">
+                The ranking will appear after students rate individual items.
+              </p>
+            </div>
+          )}
         </section>
 
         <section className="mt-5 overflow-hidden rounded-3xl border border-ink/8 bg-white shadow-sm">
