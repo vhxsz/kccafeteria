@@ -4,10 +4,8 @@ import {
   CalendarDays,
   Check,
   Clock3,
-  LogIn,
   QrCode,
   Star,
-  UtensilsCrossed,
 } from "lucide-react";
 import { BrandMark } from "@/components/brand-mark";
 
@@ -30,16 +28,7 @@ export default function Home() {
             <a href="#vote" className="transition hover:text-moss">
               Vote
             </a>
-            <a href="#staff" className="transition hover:text-moss">
-              Staff
-            </a>
           </div>
-          <Link
-            href="/login"
-            className="inline-flex items-center gap-2 border-b-2 border-moss pb-1 text-sm font-bold text-moss"
-          >
-            Staff login <LogIn size={15} aria-hidden="true" />
-          </Link>
         </nav>
       </header>
 
@@ -59,20 +48,20 @@ export default function Home() {
             <div className="mt-9 flex flex-col gap-3 sm:flex-row">
               <Link
                 href="/menu"
-                className="inline-flex items-center justify-center gap-2 bg-moss px-7 py-4 text-sm font-bold text-white transition hover:bg-tomato"
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-moss px-7 py-4 text-sm font-bold text-white shadow-[0_10px_30px_rgba(133,0,29,.18)] transition hover:-translate-y-0.5 hover:bg-tomato"
               >
                 View this week&apos;s menu <ArrowRight size={17} aria-hidden="true" />
               </Link>
               <a
                 href="#vote"
-                className="inline-flex items-center justify-center gap-2 border border-ink/20 bg-white px-7 py-4 text-sm font-bold transition hover:border-moss hover:text-moss"
+                className="inline-flex items-center justify-center gap-2 rounded-full border border-ink/15 bg-white px-7 py-4 text-sm font-bold shadow-sm transition hover:border-moss hover:text-moss"
               >
                 Rate a meal <Star size={17} aria-hidden="true" />
               </a>
             </div>
           </div>
 
-          <div className="border border-ink/12 bg-white">
+          <div className="overflow-hidden rounded-[2.25rem] border border-ink/10 bg-white/95 shadow-[0_24px_70px_rgba(36,9,16,.10)] backdrop-blur-xl">
             <div className="flex items-center justify-between border-b border-ink/10 px-6 py-5 sm:px-8">
               <div>
                 <p className="text-xs font-bold uppercase tracking-[.16em] text-moss">
@@ -110,7 +99,7 @@ export default function Home() {
       <section id="vote" className="bg-moss text-white">
         <div className="mx-auto grid w-full max-w-6xl gap-12 px-5 py-16 sm:px-8 sm:py-20 lg:grid-cols-[.8fr_1.2fr] lg:items-start">
           <div>
-            <div className="grid h-12 w-12 place-items-center border border-white/25">
+            <div className="grid h-12 w-12 place-items-center rounded-2xl border border-white/25 bg-white/5">
               <QrCode size={24} aria-hidden="true" />
             </div>
             <p className="mt-7 text-sm font-bold uppercase tracking-[.16em] text-white/65">
@@ -127,13 +116,13 @@ export default function Home() {
               food and drinks you had, rate each item, and leave an optional note
               for the cafeteria team.
             </p>
-            <ol className="mt-8 grid gap-px border border-white/20 bg-white/20 sm:grid-cols-3">
+            <ol className="mt-8 grid overflow-hidden rounded-[1.75rem] border border-white/20 bg-white/20 sm:grid-cols-3">
               {[
                 ["01", "Open your table tag"],
                 ["02", "Select what you ate"],
                 ["03", "Send your rating"],
               ].map(([number, label]) => (
-                <li key={number} className="bg-moss p-5">
+                <li key={number} className="border-b border-white/15 bg-moss p-5 last:border-b-0 sm:border-b-0 sm:border-r sm:last:border-r-0">
                   <span className="text-xs font-bold tracking-[.16em] text-white/50">{number}</span>
                   <p className="mt-2 font-bold">{label}</p>
                 </li>
@@ -141,7 +130,7 @@ export default function Home() {
             </ol>
             <Link
               href="/site/rate/tag14"
-              className="mt-8 inline-flex items-center gap-2 bg-white px-6 py-3.5 text-sm font-bold text-moss transition hover:bg-sun"
+              className="mt-8 inline-flex items-center gap-2 rounded-full bg-white px-6 py-3.5 text-sm font-bold text-moss shadow-[0_12px_35px_rgba(36,9,16,.16)] transition hover:-translate-y-0.5 hover:bg-sun"
             >
               Preview student voting <ArrowRight size={17} aria-hidden="true" />
             </Link>
@@ -149,40 +138,20 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="staff" className="border-b border-ink/10 bg-white">
-        <div className="mx-auto grid w-full max-w-6xl gap-8 px-5 py-16 sm:px-8 sm:py-20 md:grid-cols-[1fr_auto] md:items-center">
-          <div className="flex items-start gap-5">
-            <span className="grid h-12 w-12 shrink-0 place-items-center bg-sun text-moss">
-              <UtensilsCrossed size={23} aria-hidden="true" />
-            </span>
-            <div>
-              <p className="text-sm font-bold uppercase tracking-[.16em] text-moss">
-                Cafeteria staff
-              </p>
-              <h2 className="mt-2 text-3xl font-bold tracking-[-0.035em]">
-                Manage meals and feedback.
-              </h2>
-              <p className="mt-3 max-w-2xl leading-7 text-ink/60">
-                Plan the weekly schedule, update serving times, manage table tags,
-                and review student ratings in the private staff dashboard.
-              </p>
-            </div>
-          </div>
-          <Link
-            href="/login"
-            className="inline-flex items-center justify-center gap-2 border border-ink bg-ink px-7 py-4 text-sm font-bold text-white transition hover:bg-moss"
-          >
-            Manager sign in <LogIn size={17} aria-hidden="true" />
-          </Link>
-        </div>
-      </section>
-
       <footer className="bg-white">
-        <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-5 py-8 text-sm text-ink/50 sm:flex-row sm:items-center sm:justify-between sm:px-8">
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-5 py-8 text-sm text-ink/50 sm:flex-row sm:items-center sm:justify-between sm:px-8">
           <p className="font-semibold text-ink/70">MealUp at Kingsway College</p>
-          <p className="inline-flex items-center gap-2">
-            <Clock3 size={15} aria-hidden="true" /> Menu information is maintained by cafeteria staff.
-          </p>
+          <div className="flex flex-col gap-3 sm:items-end">
+            <p className="inline-flex items-center gap-2">
+              <Clock3 size={15} aria-hidden="true" /> Menu information is maintained by cafeteria staff.
+            </p>
+            <Link
+              href="/login"
+              className="w-fit text-xs text-ink/35 underline decoration-ink/20 underline-offset-4 transition hover:text-moss"
+            >
+              Staff? Sign in
+            </Link>
+          </div>
         </div>
       </footer>
     </main>
