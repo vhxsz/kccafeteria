@@ -3,14 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Bell,
   CalendarDays,
-  ChevronDown,
   ClipboardList,
   Home,
   LayoutDashboard,
   MessageSquareText,
-  Search,
   Settings,
   Tags,
 } from "lucide-react";
@@ -60,7 +57,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           })}
         </nav>
         <div className="mt-auto rounded-2xl bg-cream p-4">
-          <p className="text-xs font-bold uppercase tracking-[.14em] text-moss">Pilot workspace</p>
+          <p className="text-xs font-bold uppercase tracking-[.14em] text-moss">MealUp workspace</p>
           <p className="mt-2 text-sm font-bold">Kingsway College</p>
           <p className="mt-1 text-xs text-ink/45">Main cafeteria</p>
         </div>
@@ -74,24 +71,14 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             </div>
             <div className="hidden items-center gap-2 text-sm font-semibold text-ink/55 lg:flex">
               Kingsway College
-              <ChevronDown size={15} />
             </div>
-            <div className="flex items-center gap-3">
-              <button
-                className="grid h-10 w-10 place-items-center rounded-full border border-ink/8 bg-white text-ink/55"
-                aria-label="Search"
-              >
-                <Search size={18} />
-              </button>
-              <button
-                className="relative grid h-10 w-10 place-items-center rounded-full border border-ink/8 bg-white text-ink/55"
-                aria-label="Notifications"
-              >
-                <Bell size={18} />
-                <span className="absolute right-2 top-2 h-2 w-2 rounded-full border-2 border-white bg-tomato" />
-              </button>
-              <div className="grid h-10 w-10 place-items-center rounded-full bg-sun text-sm font-bold">AK</div>
-            </div>
+            <Link
+              href="/admin/settings"
+              className="grid h-10 w-10 place-items-center rounded-full bg-sun text-sm font-bold transition hover:ring-4 hover:ring-sun/20"
+              aria-label="Open settings"
+            >
+              KC
+            </Link>
           </div>
           <nav className="flex gap-2 overflow-x-auto px-5 pb-3 lg:hidden" aria-label="Mobile admin navigation">
             {navigation.slice(0, 6).map((item) => (

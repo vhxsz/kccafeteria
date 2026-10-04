@@ -90,7 +90,15 @@ function DayMenu({ day }: { day: StudentMenuDay }) {
 }
 
 export function StudentMenu({ menu }: { menu: StudentWeekMenu }) {
-  const today = new Date().toISOString().slice(0, 10);
+  const todayParts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: menu.timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const todayPart = (type: Intl.DateTimeFormatPartTypes) =>
+    todayParts.find((part) => part.type === type)?.value || "";
+  const today = `${todayPart("year")}-${todayPart("month")}-${todayPart("day")}`;
   const initialDate = menu.days.some((day) => day.serviceDate.slice(0, 10) === today)
     ? today
     : menu.days[0]?.serviceDate.slice(0, 10);

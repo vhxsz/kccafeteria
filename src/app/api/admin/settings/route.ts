@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { getAdminContext } from "@/lib/auth/admin-context";
+import { exceedsContentLength, rejectCrossOrigin } from "@/lib/security/request";
 
 const timePattern = /^([01]\d|2[0-3]):[0-5]\d$/;
 
@@ -59,7 +60,10 @@ export async function GET() {
   ]);
 
   const error = schoolResult.error || cafeteriaResult.error || mealsResult.error;
-  if (error) return Response.json({ error: error.message }, { status: 400 });
+  if (error) {
+    console.error("Unable to load settings:", error.message);
+    return Response.json({ error: "Settings could not be loaded." }, { status: 500 });
+  }
 
   return Response.json({
     schoolName: schoolResult.data.name,
@@ -76,6 +80,11 @@ export async function GET() {
 }
 
 export async function PUT(request: Request) {
+  const originError = rejectCrossOrigin(request);
+  if (originError) return originError;
+  if (exceedsContentLength(request, 64 * 1024)) {
+    return Response.json({ error: "Settings payload is too large." }, { status: 413 });
+  }
   const context = await getAdminContext();
   if (!context) return Response.json({ error: "Unauthorized." }, { status: 401 });
 
@@ -110,7 +119,10 @@ export async function PUT(request: Request) {
   ]);
 
   const baseError = schoolResult.error || cafeteriaResult.error || diningAreaResult.error;
-  if (baseError) return Response.json({ error: baseError.message }, { status: 400 });
+  if (baseError) {
+    console.error("Unable to save workspace settings:", baseError.message);
+    return Response.json({ error: "Settings could not be saved." }, { status: 500 });
+  }
 
   const areaResult = diningAreaResult.data
     ? await context.supabase
@@ -125,7 +137,8 @@ export async function PUT(request: Request) {
       });
 
   if (areaResult.error) {
-    return Response.json({ error: areaResult.error.message }, { status: 400 });
+    console.error("Unable to save dining area:", areaResult.error.message);
+    return Response.json({ error: "Settings could not be saved." }, { status: 500 });
   }
 
   for (const period of settings.mealPeriods) {
@@ -136,7 +149,10 @@ export async function PUT(request: Request) {
       .eq("school_id", context.schoolId)
       .eq("cafeteria_id", context.cafeteriaId);
 
-    if (error) return Response.json({ error: error.message }, { status: 400 });
+    if (error) {
+      console.error("Unable to save meal period:", error.message);
+      return Response.json({ error: "Meal times could not be saved." }, { status: 500 });
+    }
   }
 
   return Response.json({ saved: true });

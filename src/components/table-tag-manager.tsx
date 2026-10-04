@@ -24,11 +24,8 @@ export function TableTagManager() {
   const [formError, setFormError] = useState("");
 
   useEffect(() => {
-    if (
-      process.env.NEXT_PUBLIC_SUPABASE_URL &&
-      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
-    ) {
-      fetch("/api/admin/tables")
+    const controller = new AbortController();
+    fetch("/api/admin/tables", { signal: controller.signal })
         .then(async (response) => {
           const payload = (await response.json()) as {
             tables?: CafeteriaTable[];
@@ -41,24 +38,17 @@ export function TableTagManager() {
         })
         .then(setTables)
         .catch((error: unknown) => {
-          setTableError(
-            error instanceof Error ? error.message : "The table tags could not be loaded.",
-          );
+          if (error instanceof Error && error.name === "AbortError") return;
+          setTableError(error instanceof Error ? error.message : "The table tags could not be loaded.");
         })
-        .finally(() => setLoadingTables(false));
-      return;
-    }
-    const saved = localStorage.getItem("nourish-cafeteria-tables");
-    const frame = window.requestAnimationFrame(() => {
-      if (saved) setTables(JSON.parse(saved) as CafeteriaTable[]);
-      setLoadingTables(false);
-    });
-    return () => window.cancelAnimationFrame(frame);
+        .finally(() => {
+          if (!controller.signal.aborted) setLoadingTables(false);
+        });
+    return () => controller.abort();
   }, []);
 
   function persist(next: CafeteriaTable[]) {
     setTables(next);
-    localStorage.setItem("nourish-cafeteria-tables", JSON.stringify(next));
   }
 
   async function createTable(event: FormEvent<HTMLFormElement>) {
@@ -86,37 +76,23 @@ export function TableTagManager() {
       return;
     }
 
-    let createdTable: CafeteriaTable = {
-      id: crypto.randomUUID(),
-      tableNumber,
-      tagCode,
-      area: area || "Main hall",
-      active: true,
+    const response = await fetch("/api/admin/tables", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tableNumber, tagCode, area: area || "Main hall" }),
+    });
+    const payload = (await response.json()) as {
+      table?: CafeteriaTable;
+      error?: string;
     };
-
-    if (
-      process.env.NEXT_PUBLIC_SUPABASE_URL &&
-      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
-    ) {
-      const response = await fetch("/api/admin/tables", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(createdTable),
-      });
-      const payload = (await response.json()) as {
-        table?: CafeteriaTable;
-        error?: string;
-      };
-      if (!response.ok || !payload.table) {
-        setFormError(payload.error || "The table tag could not be created.");
-        return;
-      }
-      createdTable = payload.table;
+    if (!response.ok || !payload.table) {
+      setFormError(payload.error || "The table tag could not be created.");
+      return;
     }
 
     persist([
       ...tables,
-      createdTable,
+      payload.table,
     ]);
     formElement.reset();
     setFormError("");
@@ -163,17 +139,18 @@ export function TableTagManager() {
       item.id === table.id ? { ...item, active: nextActive } : item,
     );
     persist(next);
-
-    if (
-      process.env.NEXT_PUBLIC_SUPABASE_URL &&
-      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
-    ) {
+    setTableError("");
+    try {
       const response = await fetch("/api/admin/tables", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: table.id, active: nextActive }),
       });
-      if (!response.ok) persist(tables);
+      const payload = (await response.json().catch(() => ({}))) as { error?: string };
+      if (!response.ok) throw new Error(payload.error || "The table could not be updated.");
+    } catch (error) {
+      persist(tables);
+      setTableError(error instanceof Error ? error.message : "The table could not be updated.");
     }
   }
 

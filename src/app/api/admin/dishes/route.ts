@@ -1,9 +1,23 @@
 import { z } from "zod";
 import { getAdminContext } from "@/lib/auth/admin-context";
+import { exceedsContentLength, rejectCrossOrigin } from "@/lib/security/request";
 
 const imageBucket = "meal-images";
 const maximumImageSize = 4 * 1024 * 1024;
 const allowedImageTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
+
+function hasValidImageSignature(bytes: Uint8Array, type: string) {
+  if (type === "image/jpeg") return bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+  if (type === "image/png") {
+    return bytes.length >= 8 && [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]
+      .every((value, index) => bytes[index] === value);
+  }
+  if (type === "image/webp") {
+    return bytes.length >= 12 && String.fromCharCode(...bytes.slice(0, 4)) === "RIFF" &&
+      String.fromCharCode(...bytes.slice(8, 12)) === "WEBP";
+  }
+  return false;
+}
 
 const dishSchema = z.object({
   name: z.string().trim().min(2).max(100),
@@ -26,11 +40,19 @@ export async function GET() {
     .eq("active", true)
     .order("name");
 
-  if (error) return Response.json({ error: error.message }, { status: 400 });
+  if (error) {
+    console.error("Unable to load dishes:", error.message);
+    return Response.json({ error: "Dishes could not be loaded." }, { status: 500 });
+  }
   return Response.json({ dishes: data || [] });
 }
 
 export async function POST(request: Request) {
+  const originError = rejectCrossOrigin(request);
+  if (originError) return originError;
+  if (exceedsContentLength(request, 5 * 1024 * 1024)) {
+    return Response.json({ error: "Upload is too large." }, { status: 413 });
+  }
   const context = await getAdminContext();
   if (!context) return Response.json({ error: "Unauthorized." }, { status: 401 });
 
@@ -69,6 +91,10 @@ export async function POST(request: Request) {
   if (image.size > maximumImageSize) {
     return Response.json({ error: "The photo must be smaller than 4 MB." }, { status: 400 });
   }
+  const imageBuffer = await image.arrayBuffer();
+  if (!hasValidImageSignature(new Uint8Array(imageBuffer), image.type)) {
+    return Response.json({ error: "The selected file is not a valid image." }, { status: 400 });
+  }
 
   const extensionByType: Record<string, string> = {
     "image/jpeg": "jpg",
@@ -78,14 +104,15 @@ export async function POST(request: Request) {
   const imagePath = `${context.schoolId}/${crypto.randomUUID()}.${extensionByType[image.type]}`;
   const { error: uploadError } = await context.supabase.storage
     .from(imageBucket)
-    .upload(imagePath, await image.arrayBuffer(), {
+    .upload(imagePath, imageBuffer, {
       contentType: image.type,
       cacheControl: "31536000",
       upsert: false,
     });
 
   if (uploadError) {
-    return Response.json({ error: `Photo upload failed: ${uploadError.message}` }, { status: 400 });
+    console.error("Photo upload failed:", uploadError.message);
+    return Response.json({ error: "The photo could not be uploaded." }, { status: 500 });
   }
 
   const { data: publicImage } = context.supabase.storage.from(imageBucket).getPublicUrl(imagePath);
@@ -108,7 +135,8 @@ export async function POST(request: Request) {
 
   if (error) {
     await context.supabase.storage.from(imageBucket).remove([imagePath]);
-    return Response.json({ error: error.message }, { status: 400 });
+    console.error("Unable to create dish:", error.message);
+    return Response.json({ error: "The dish could not be created." }, { status: 500 });
   }
   return Response.json({ dish: data }, { status: 201 });
 }

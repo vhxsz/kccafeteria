@@ -53,20 +53,20 @@ export function SchoolSettings() {
     setSaving(true);
     setSaved(false);
     setError("");
-
-    const response = await fetch("/api/admin/settings", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(settings),
-    });
-    const payload = (await response.json()) as { saved?: boolean; error?: string };
-    setSaving(false);
-    if (!response.ok) {
-      setError(payload.error || "Settings could not be saved.");
-      return;
+    try {
+      const response = await fetch("/api/admin/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(settings),
+      });
+      const payload = (await response.json().catch(() => ({}))) as { saved?: boolean; error?: string };
+      if (!response.ok) throw new Error(payload.error || "Settings could not be saved.");
+      setSaved(true);
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : "Settings could not be saved.");
+    } finally {
+      setSaving(false);
     }
-
-    setSaved(true);
   }
 
   function updateField<K extends keyof Omit<Settings, "mealPeriods">>(

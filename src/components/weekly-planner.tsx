@@ -115,61 +115,10 @@ function formatWeekRange(days: PlannerDay[]) {
   return `${startLabel} – ${endLabel}`;
 }
 
-const dishDefaults = {
-  description: "Freshly prepared by the cafeteria team.",
-  ingredients: [] as string[],
-  allergens: [] as string[],
-  dietaryInformation: [] as string[],
-  servingSize: "",
-};
-
 const defaultMealSlots: MealSlot[] = [
   { id: "breakfast", name: "Breakfast", startsAt: "06:30", endsAt: "10:00" },
   { id: "lunch", name: "Lunch", startsAt: "11:30", endsAt: "14:30" },
   { id: "dinner", name: "Dinner", startsAt: "17:00", endsAt: "20:30" },
-];
-
-const initialDishes: Dish[] = [
-  {
-    id: "dish-chicken",
-    name: "Grilled chicken",
-    category: "Main dish",
-    ...dishDefaults,
-    imageUrl:
-      "https://images.unsplash.com/photo-1532550907401-a500c9a57435?auto=format&fit=crop&w=640&q=80",
-  },
-  {
-    id: "dish-pasta",
-    name: "Tomato basil pasta",
-    category: "Main dish",
-    ...dishDefaults,
-    imageUrl:
-      "https://images.unsplash.com/photo-1473093295043-cdd812d0e601?auto=format&fit=crop&w=640&q=80",
-  },
-  {
-    id: "dish-salad",
-    name: "Garden salad",
-    category: "Vegetable",
-    ...dishDefaults,
-    imageUrl:
-      "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=640&q=80",
-  },
-  {
-    id: "dish-eggs",
-    name: "Scrambled eggs",
-    category: "Breakfast",
-    ...dishDefaults,
-    imageUrl:
-      "https://images.unsplash.com/photo-1525351484163-7529414344d8?auto=format&fit=crop&w=640&q=80",
-  },
-  {
-    id: "dish-pizza",
-    name: "Vegetable pizza",
-    category: "Main dish",
-    ...dishDefaults,
-    imageUrl:
-      "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=640&q=80",
-  },
 ];
 
 function createEmptySchedule(days: PlannerDay[], slots: MealSlot[]) {
@@ -195,23 +144,6 @@ function createDefaultScheduleTimes(days: PlannerDay[], slots: MealSlot[]) {
   ) as ScheduleTimes;
 }
 
-function normalizeSchedule(
-  value: Partial<Schedule> | undefined,
-  days: PlannerDay[],
-  slots: MealSlot[],
-): Schedule {
-  const normalized = createEmptySchedule(days, slots);
-
-  days.forEach((day) => {
-    slots.forEach((slot) => {
-      const savedItems = value?.[day.key]?.[slot.name];
-      normalized[day.key][slot.name] = Array.isArray(savedItems) ? savedItems : [];
-    });
-  });
-
-  return normalized;
-}
-
 type DragPayload = {
   dishId: string;
   fromDay?: string;
@@ -221,7 +153,7 @@ type DragPayload = {
 export function WeeklyPlanner() {
   const [weekStart, setWeekStart] = useState(() => startOfWeek(torontoDateIso()));
   const days = useMemo(() => createWeekDays(weekStart), [weekStart]);
-  const [dishes, setDishes] = useState(initialDishes);
+  const [dishes, setDishes] = useState<Dish[]>([]);
   const [schedule, setSchedule] = useState(() =>
     createEmptySchedule(createWeekDays(startOfWeek(torontoDateIso())), defaultMealSlots),
   );
@@ -237,6 +169,8 @@ export function WeeklyPlanner() {
   const [saved, setSaved] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
+  const [loadError, setLoadError] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
   const [dirtyTimeSlots, setDirtyTimeSlots] = useState<Set<string>>(() => new Set());
   const [dishImagePreview, setDishImagePreview] = useState("");
   const [dishFormError, setDishFormError] = useState("");
@@ -251,12 +185,36 @@ export function WeeklyPlanner() {
   }, [dishImagePreview]);
 
   useEffect(() => {
-    if (
-      process.env.NEXT_PUBLIC_SUPABASE_URL &&
-      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
-    ) {
-      fetch(`/api/admin/schedule?start=${days[0].isoDate}&end=${days[6].isoDate}`)
-        .then((response) => response.json())
+    const controller = new AbortController();
+    Promise.resolve()
+      .then(() => {
+        setIsLoading(true);
+        setLoadError("");
+        return fetch(`/api/admin/schedule?start=${days[0].isoDate}&end=${days[6].isoDate}`, {
+          signal: controller.signal,
+        });
+      })
+      .then(async (response) => {
+        const payload = (await response.json().catch(() => ({}))) as {
+          error?: string;
+          dishes?: Array<{
+            id: string;
+            name: string;
+            category: string;
+            image_url: string | null;
+            description: string | null;
+            ingredients: string[];
+            allergens: string[];
+            dietary_information: string[];
+            serving_size: string | null;
+          }>;
+          schedule?: Record<string, Record<string, string[]>>;
+          mealTimes?: Record<string, Record<string, MealTime>>;
+          mealPeriods?: MealSlot[];
+        };
+        if (!response.ok) throw new Error(payload.error || "The schedule could not be loaded.");
+        return payload;
+      })
         .then(
           (payload: {
             dishes?: Array<{
@@ -324,30 +282,13 @@ export function WeeklyPlanner() {
             setMealTimes(remoteMealTimes);
           },
         )
-        .catch(() => undefined);
-      return;
-    }
-    const savedDishes = localStorage.getItem("nourish-dishes");
-    const savedSchedule = localStorage.getItem("nourish-schedule");
-    const savedMealTimes = localStorage.getItem("nourish-meal-times");
-    if (savedDishes || savedSchedule || savedMealTimes) {
-      const frame = window.requestAnimationFrame(() => {
-        if (savedDishes) setDishes(JSON.parse(savedDishes) as Dish[]);
-        if (savedSchedule) {
-          setSchedule(
-            normalizeSchedule(
-              JSON.parse(savedSchedule) as Partial<Schedule>,
-              days,
-              defaultMealSlots,
-            ),
-          );
-        }
-        if (savedMealTimes) {
-          setMealTimes(JSON.parse(savedMealTimes) as ScheduleTimes);
-        }
+      .catch((error: Error) => {
+        if (error.name !== "AbortError") setLoadError(error.message);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setIsLoading(false);
       });
-      return () => window.cancelAnimationFrame(frame);
-    }
+    return () => controller.abort();
   }, [days]);
 
   const filteredDishes = useMemo(
@@ -467,11 +408,7 @@ export function WeeklyPlanner() {
         servingSize: String(form.get("servingSize") || "").trim(),
       };
 
-      if (
-        process.env.NEXT_PUBLIC_SUPABASE_URL &&
-        process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
-      ) {
-        const categoryValues: Record<string, string> = {
+      const categoryValues: Record<string, string> = {
           "Main dish": "main_dish",
           Side: "side",
           Vegetable: "salad",
@@ -479,8 +416,8 @@ export function WeeklyPlanner() {
           Dessert: "dessert",
           Drink: "drink",
           Other: "other",
-        };
-        const requestBody = new FormData();
+      };
+      const requestBody = new FormData();
         requestBody.set("name", dish.name);
         requestBody.set("category", categoryValues[dish.category] || "other");
         requestBody.set("image", image);
@@ -489,23 +426,23 @@ export function WeeklyPlanner() {
         requestBody.set("allergens", JSON.stringify(dish.allergens));
         requestBody.set("dietaryInformation", JSON.stringify(dish.dietaryInformation));
         requestBody.set("servingSize", dish.servingSize);
-        const response = await fetch("/api/admin/dishes", {
-          method: "POST",
-          body: requestBody,
-        });
-        const payload = (await response.json()) as {
+      const response = await fetch("/api/admin/dishes", {
+        method: "POST",
+        body: requestBody,
+      });
+      const payload = (await response.json()) as {
           error?: string;
           dish?: {
             id: string; name: string; category: string; image_url: string | null;
             description: string | null; ingredients: string[]; allergens: string[];
             dietary_information: string[]; serving_size: string | null;
           };
-        };
-        if (!response.ok || !payload.dish) {
-          setDishFormError(payload.error || "Unable to create this dish.");
-          return;
-        }
-        dish = {
+      };
+      if (!response.ok || !payload.dish) {
+        setDishFormError(payload.error || "Unable to create this dish.");
+        return;
+      }
+      dish = {
           id: payload.dish.id,
           name: payload.dish.name,
           category: Object.entries(categoryValues).find(([, value]) => value === payload.dish?.category)?.[0] || dish.category,
@@ -515,15 +452,7 @@ export function WeeklyPlanner() {
           allergens: payload.dish.allergens || [],
           dietaryInformation: payload.dish.dietary_information || [],
           servingSize: payload.dish.serving_size || "",
-        };
-      } else {
-        dish.imageUrl = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(String(reader.result));
-          reader.onerror = () => reject(new Error("Unable to read the selected image."));
-          reader.readAsDataURL(image);
-        });
-      }
+      };
       setDishes((current) => [...current, dish]);
       setShowDishForm(false);
       setDishImagePreview("");
@@ -543,11 +472,7 @@ export function WeeklyPlanner() {
     setIsSaving(true);
     setSaveError("");
     try {
-      if (
-        process.env.NEXT_PUBLIC_SUPABASE_URL &&
-        process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
-      ) {
-        const scheduleByDate = Object.fromEntries(
+      const scheduleByDate = Object.fromEntries(
           days.map((day) => [
             day.isoDate,
             Object.fromEntries(
@@ -557,8 +482,8 @@ export function WeeklyPlanner() {
               ]),
             ),
           ]),
-        );
-        const response = await fetch("/api/admin/schedule", {
+      );
+      const response = await fetch("/api/admin/schedule", {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -567,16 +492,12 @@ export function WeeklyPlanner() {
               days.map((day) => [day.isoDate, mealTimes[day.key]]),
             ),
           }),
-        });
-        const payload = (await response.json().catch(() => ({}))) as { error?: string };
-        if (!response.ok) {
-          throw new Error(payload.error || "The schedule could not be saved.");
-        }
+      });
+      const payload = (await response.json().catch(() => ({}))) as { error?: string };
+      if (!response.ok) {
+        throw new Error(payload.error || "The schedule could not be saved.");
       }
 
-      localStorage.setItem("nourish-dishes", JSON.stringify(dishes));
-      localStorage.setItem("nourish-schedule", JSON.stringify(schedule));
-      localStorage.setItem("nourish-meal-times", JSON.stringify(mealTimes));
       setSaved(true);
       setDirtyTimeSlots(new Set());
     } catch (error) {
@@ -627,7 +548,7 @@ export function WeeklyPlanner() {
           </div>
           <button
             onClick={saveSchedule}
-            disabled={isSaving}
+            disabled={isSaving || isLoading || Boolean(loadError)}
             className="inline-flex h-11 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-full bg-ink px-5 text-sm font-bold text-white hover:bg-moss disabled:cursor-wait disabled:opacity-60"
           >
             {saved && !isSaving ? <Check size={17} /> : null}
@@ -640,6 +561,14 @@ export function WeeklyPlanner() {
         <p className="mt-5 rounded-2xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-700" role="alert">
           {saveError}
         </p>
+      ) : null}
+      {loadError ? (
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-700" role="alert">
+          <span>{loadError} No local or sample data was substituted.</span>
+          <button type="button" onClick={() => window.location.reload()} className="rounded-full bg-white px-4 py-2 text-xs font-bold shadow-sm">
+            Try again
+          </button>
+        </div>
       ) : null}
 
       <div className="mt-8 grid gap-5 2xl:grid-cols-[280px_1fr]">
@@ -667,6 +596,7 @@ export function WeeklyPlanner() {
             />
           </label>
           <div className="mt-4 space-y-3">
+            {isLoading ? <p className="py-6 text-center text-sm text-ink/45">Loading dishes…</p> : null}
             {filteredDishes.map((dish) => (
               <div
                 key={dish.id}
@@ -685,6 +615,9 @@ export function WeeklyPlanner() {
                 </div>
               </div>
             ))}
+            {!isLoading && !loadError && filteredDishes.length === 0 ? (
+              <p className="py-6 text-center text-sm text-ink/45">No dishes found.</p>
+            ) : null}
           </div>
           <p className="mt-5 text-xs leading-5 text-ink/40">
             <Clock3 size={14} className="mr-1 inline" />

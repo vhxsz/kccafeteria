@@ -1,12 +1,19 @@
-import { getDemoWeekMenu } from "@/lib/cafeteria/demo";
 import type { StudentWeekMenu } from "@/lib/cafeteria/types";
 import { createClient } from "@/lib/supabase/server";
 
-export function getMonday(date = new Date()) {
-  const result = new Date(date);
-  const day = result.getDay();
-  result.setDate(result.getDate() - (day === 0 ? 6 : day - 1));
-  return result.toISOString().slice(0, 10);
+export function getMonday(date = new Date(), timeZone = "America/Toronto") {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const get = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value || "";
+  const localDateAtNoonUtc = new Date(`${get("year")}-${get("month")}-${get("day")}T12:00:00Z`);
+  const weekday = localDateAtNoonUtc.getUTCDay();
+  localDateAtNoonUtc.setUTCDate(localDateAtNoonUtc.getUTCDate() - (weekday === 0 ? 6 : weekday - 1));
+  return localDateAtNoonUtc.toISOString().slice(0, 10);
 }
 
 export async function getStudentWeekMenu(
@@ -17,25 +24,17 @@ export async function getStudentWeekMenu(
     !process.env.NEXT_PUBLIC_SUPABASE_URL ||
     !process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
   ) {
-    return getDemoWeekMenu(tagCode, weekStart);
+    throw new Error("The cafeteria service is not configured.");
   }
 
-  try {
-    const supabase = await createClient();
-    const { data, error } = await supabase.rpc("resolve_week_menu", {
-      p_tag_code: tagCode.toLowerCase(),
-      p_week_start: weekStart,
-    });
-    if (error) {
-      console.error("Unable to load the weekly menu:", error.message);
-      return getDemoWeekMenu(tagCode, weekStart);
-    }
-    if (!data && tagCode.toLowerCase() === "tag14") {
-      return getDemoWeekMenu(tagCode, weekStart);
-    }
-    return data as StudentWeekMenu | null;
-  } catch (error) {
-    console.error("Unable to initialize the weekly menu:", error);
-    return getDemoWeekMenu(tagCode, weekStart);
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("resolve_week_menu", {
+    p_tag_code: tagCode.toLowerCase(),
+    p_week_start: weekStart,
+  });
+  if (error) {
+    console.error("Unable to load the weekly menu:", error.message);
+    throw new Error("The weekly menu could not be loaded.");
   }
+  return data as StudentWeekMenu | null;
 }

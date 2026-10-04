@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { getAdminContext } from "@/lib/auth/admin-context";
+import { exceedsContentLength, rejectCrossOrigin } from "@/lib/security/request";
 
 const datePattern = /^\d{4}-\d{2}-\d{2}$/;
 const timePattern = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -55,6 +56,12 @@ export async function GET(request: Request) {
       .lte("service_date", end),
   ]);
 
+  const loadError = dishesResult.error || mealsResult.error || menusResult.error;
+  if (loadError) {
+    console.error("Unable to load schedule:", loadError.message);
+    return Response.json({ error: "The schedule could not be loaded." }, { status: 500 });
+  }
+
   const menus = menusResult.data || [];
   const menuIds = menus.map((menu) => menu.id);
   const menuItemsResult = menuIds.length
@@ -64,6 +71,10 @@ export async function GET(request: Request) {
         .in("menu_id", menuIds)
         .order("sort_order")
     : { data: [], error: null };
+  if (menuItemsResult.error) {
+    console.error("Unable to load scheduled dishes:", menuItemsResult.error.message);
+    return Response.json({ error: "The schedule could not be loaded." }, { status: 500 });
+  }
 
   const mealNames = new Map((mealsResult.data || []).map((meal) => [meal.id, meal.name]));
   const schedule: Record<string, Record<string, string[]>> = {};
@@ -99,6 +110,11 @@ export async function GET(request: Request) {
 }
 
 export async function PUT(request: Request) {
+  const originError = rejectCrossOrigin(request);
+  if (originError) return originError;
+  if (exceedsContentLength(request, 256 * 1024)) {
+    return Response.json({ error: "Schedule payload is too large." }, { status: 413 });
+  }
   const context = await getAdminContext();
   if (!context) return Response.json({ error: "Unauthorized." }, { status: 401 });
   const parsed = saveSchema.safeParse(await request.json().catch(() => null));
@@ -110,7 +126,10 @@ export async function PUT(request: Request) {
     .eq("school_id", context.schoolId)
     .eq("cafeteria_id", context.cafeteriaId)
     .eq("active", true);
-  if (mealError) return Response.json({ error: mealError.message }, { status: 400 });
+  if (mealError) {
+    console.error("Unable to load meal periods:", mealError.message);
+    return Response.json({ error: "The schedule could not be saved." }, { status: 500 });
+  }
 
   for (const [serviceDate, meals] of Object.entries(parsed.data.schedule)) {
     for (const mealPeriod of mealPeriods) {
@@ -132,14 +151,20 @@ export async function PUT(request: Request) {
         )
         .select("id")
         .single();
-      if (menuError) return Response.json({ error: menuError.message }, { status: 400 });
+      if (menuError) {
+        console.error("Unable to save menu:", menuError.message);
+        return Response.json({ error: "The schedule could not be saved." }, { status: 500 });
+      }
 
       const { error: deleteError } = await context.supabase
         .from("menu_items")
         .delete()
         .eq("menu_id", menu.id)
         .eq("school_id", context.schoolId);
-      if (deleteError) return Response.json({ error: deleteError.message }, { status: 400 });
+      if (deleteError) {
+        console.error("Unable to replace menu items:", deleteError.message);
+        return Response.json({ error: "The schedule could not be saved." }, { status: 500 });
+      }
 
       if (dishIds.length) {
         const { error: insertError } = await context.supabase
@@ -152,7 +177,10 @@ export async function PUT(request: Request) {
               sort_order: index,
             })),
           );
-        if (insertError) return Response.json({ error: insertError.message }, { status: 400 });
+        if (insertError) {
+          console.error("Unable to save menu items:", insertError.message);
+          return Response.json({ error: "The schedule could not be saved." }, { status: 500 });
+        }
       }
     }
   }

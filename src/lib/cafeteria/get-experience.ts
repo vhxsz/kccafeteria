@@ -1,4 +1,3 @@
-import { getDemoExperience } from "@/lib/cafeteria/demo";
 import type { TableExperience } from "@/lib/cafeteria/types";
 import { createClient } from "@/lib/supabase/server";
 
@@ -7,26 +6,18 @@ export async function getTableExperience(tagCode: string): Promise<TableExperien
     !process.env.NEXT_PUBLIC_SUPABASE_URL ||
     !process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
   ) {
-    return getDemoExperience(tagCode);
+    throw new Error("The cafeteria service is not configured.");
   }
 
-  try {
-    const supabase = await createClient();
-    const { data, error } = await supabase.rpc("resolve_table_experience", {
-      p_tag_code: tagCode.toLowerCase(),
-    });
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("resolve_table_experience", {
+    p_tag_code: tagCode.toLowerCase(),
+  });
 
-    if (error) {
-      console.error("Unable to resolve cafeteria tag:", error.message);
-      return null;
-    }
-
-    if (!data && tagCode.toLowerCase() === "tag14") {
-      return getDemoExperience(tagCode);
-    }
-    return data as TableExperience | null;
-  } catch (error) {
-    console.error("Unable to initialize Supabase:", error);
-    return getDemoExperience(tagCode);
+  if (error) {
+    console.error("Unable to resolve cafeteria tag:", error.message);
+    throw new Error("The cafeteria service could not load this table.");
   }
+
+  return data as TableExperience | null;
 }

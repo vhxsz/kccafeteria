@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { exceedsContentLength, rejectCrossOrigin } from "@/lib/security/request";
 
 const reviewSchema = z.object({
   tagCode: z.string().trim().min(3).max(64).regex(/^[a-zA-Z0-9_-]+$/),
@@ -10,17 +11,31 @@ const reviewSchema = z.object({
   itemRatings: z
     .array(
       z.object({
-        foodItemId: z.string().min(1).max(100),
+        foodItemId: z.uuid(),
         rating: z.number().int().min(1).max(5),
       }),
     )
-    .max(30),
+    .min(1)
+    .max(30)
+    .refine(
+      (items) => new Set(items.map((item) => item.foodItemId)).size === items.length,
+      { message: "Food ratings must be unique." },
+    ),
   tags: z.array(z.string().trim().min(1).max(50)).max(12),
   comment: z.string().trim().max(280),
   idempotencyKey: z.uuid(),
 });
 
 export async function POST(request: NextRequest) {
+  const originError = rejectCrossOrigin(request);
+  if (originError) return originError;
+  if (!request.headers.get("content-type")?.startsWith("application/json")) {
+    return Response.json({ error: "JSON is required." }, { status: 415 });
+  }
+  if (exceedsContentLength(request, 32 * 1024)) {
+    return Response.json({ error: "Feedback payload is too large." }, { status: 413 });
+  }
+
   const parsed = reviewSchema.safeParse(await request.json().catch(() => null));
 
   if (!parsed.success) {
@@ -30,8 +45,12 @@ export async function POST(request: NextRequest) {
   const supabase = await createClient();
 
   const forwardedFor = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
-  const anonymousSignal = forwardedFor || request.headers.get("user-agent") || "unknown";
-  const secret = process.env.REVIEW_HASH_SECRET || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  const anonymousSignal = `${forwardedFor || "unknown"}:${request.headers.get("user-agent") || "unknown"}`;
+  const secret = process.env.REVIEW_HASH_SECRET;
+  if (!secret || secret.length < 32) {
+    console.error("REVIEW_HASH_SECRET must contain at least 32 characters.");
+    return Response.json({ error: "Feedback is temporarily unavailable." }, { status: 503 });
+  }
 
   const anonymousHash = createHash("sha256")
     .update(secret + ":" + anonymousSignal)

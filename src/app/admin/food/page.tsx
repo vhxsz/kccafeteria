@@ -10,12 +10,13 @@ export default async function FoodLibraryPage() {
   const context = await getAdminContext();
   if (!context) redirect("/login?next=/admin/food");
 
-  const { data } = await context.supabase
+  const { data, error } = await context.supabase
     .from("food_items")
     .select("id, name, category, image_url, description, ingredients, allergens, dietary_information, serving_size")
     .eq("school_id", context.schoolId)
     .eq("active", true)
     .order("name");
+  if (error) throw new Error("The food library could not be loaded.");
 
   return (
     <AdminShell>

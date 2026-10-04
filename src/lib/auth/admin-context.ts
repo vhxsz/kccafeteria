@@ -15,11 +15,20 @@ export async function getAdminContext() {
     .from("profiles")
     .select("school_id, role")
     .eq("id", userId)
+    .eq("active", true)
     .single();
 
   if (!profile?.school_id || !managerRoles.includes(profile.role)) {
     return null;
   }
+
+  const { data: school } = await supabase
+    .from("schools")
+    .select("id")
+    .eq("id", profile.school_id)
+    .eq("active", true)
+    .maybeSingle();
+  if (!school) return null;
 
   const { data: cafeteria } = await supabase
     .from("cafeterias")

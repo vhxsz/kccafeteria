@@ -84,6 +84,9 @@ export default async function ReviewsPage() {
   ]);
 
   const reviews = (reviewsResult.data || []) as ReviewRecord[];
+  const baseError =
+    schoolResult.error || reviewsResult.error || mealsResult.error || tablesResult.error;
+  if (baseError) throw new Error("Review data could not be loaded.");
   const reviewIds = reviews.map((review) => review.id);
   const [reviewTagsResult, tagsResult, reviewItemsResult, foodsResult] = reviewIds.length
     ? await Promise.all([
@@ -112,6 +115,13 @@ export default async function ReviewsPage() {
         { data: [] },
         { data: [] },
       ];
+
+  const detailError =
+    "error" in reviewTagsResult && reviewTagsResult.error ||
+    "error" in tagsResult && tagsResult.error ||
+    "error" in reviewItemsResult && reviewItemsResult.error ||
+    "error" in foodsResult && foodsResult.error;
+  if (detailError) throw new Error("Review details could not be loaded.");
 
   const timezone = schoolResult.data?.timezone || "America/Toronto";
   const todayKey = localDateKey(new Date(), timezone);

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { getAdminContext } from "@/lib/auth/admin-context";
+import { exceedsContentLength, rejectCrossOrigin } from "@/lib/security/request";
 
 const createTableSchema = z.object({
   tableNumber: z.number().int().positive(),
@@ -23,7 +24,10 @@ export async function GET() {
     .eq("cafeteria_id", context.cafeteriaId)
     .order("table_number");
 
-  if (error) return Response.json({ error: error.message }, { status: 400 });
+  if (error) {
+    console.error("Unable to load tables:", error.message);
+    return Response.json({ error: "Tables could not be loaded." }, { status: 500 });
+  }
 
   return Response.json({
     tables: data.map((table) => ({
@@ -37,6 +41,11 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const originError = rejectCrossOrigin(request);
+  if (originError) return originError;
+  if (exceedsContentLength(request, 16 * 1024)) {
+    return Response.json({ error: "Table payload is too large." }, { status: 413 });
+  }
   const context = await getAdminContext();
   if (!context) return Response.json({ error: "Unauthorized." }, { status: 401 });
   const parsed = createTableSchema.safeParse(await request.json().catch(() => null));
@@ -55,7 +64,10 @@ export async function POST(request: Request) {
     .select("id, table_number, tag_code, display_name, active")
     .single();
 
-  if (error) return Response.json({ error: error.message }, { status: 409 });
+  if (error) {
+    console.error("Unable to create table:", error.message);
+    return Response.json({ error: "That table number or tag is already in use." }, { status: 409 });
+  }
 
   return Response.json(
     {
@@ -72,6 +84,11 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
+  const originError = rejectCrossOrigin(request);
+  if (originError) return originError;
+  if (exceedsContentLength(request, 16 * 1024)) {
+    return Response.json({ error: "Table payload is too large." }, { status: 413 });
+  }
   const context = await getAdminContext();
   if (!context) return Response.json({ error: "Unauthorized." }, { status: 401 });
   const parsed = updateTableSchema.safeParse(await request.json().catch(() => null));
@@ -83,6 +100,9 @@ export async function PATCH(request: Request) {
     .eq("id", parsed.data.id)
     .eq("school_id", context.schoolId);
 
-  if (error) return Response.json({ error: error.message }, { status: 400 });
+  if (error) {
+    console.error("Unable to update table:", error.message);
+    return Response.json({ error: "The table could not be updated." }, { status: 500 });
+  }
   return Response.json({ updated: true });
 }
