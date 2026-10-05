@@ -25,7 +25,7 @@ tags, time-based menu resolution, and reviews use Supabase.
 
 Requirements:
 
-- Node.js 20 or newer
+- Node.js 22.13 or newer
 - pnpm
 - A Supabase project
 
