@@ -7,6 +7,7 @@ import { getAdminContext } from "@/lib/auth/admin-context";
 export const metadata: Metadata = {
   title: "Weekly meal planner",
 };
+export const dynamic = "force-dynamic";
 
 export default async function SchedulePage() {
   const context = await getAdminContext();

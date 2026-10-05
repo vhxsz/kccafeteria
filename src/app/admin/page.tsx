@@ -6,6 +6,7 @@ import { AdminShell } from "@/components/admin-shell";
 import { getAdminContext } from "@/lib/auth/admin-context";
 
 export const metadata: Metadata = { title: "Overview" };
+export const dynamic = "force-dynamic";
 
 type ReviewRecord = {
   id: string;

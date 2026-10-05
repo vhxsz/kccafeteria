@@ -13,6 +13,7 @@ import { getAdminContext } from "@/lib/auth/admin-context";
 export const metadata: Metadata = {
   title: "Reviews",
 };
+export const dynamic = "force-dynamic";
 
 type ReviewRecord = {
   id: string;

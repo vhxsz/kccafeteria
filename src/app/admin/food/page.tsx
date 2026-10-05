@@ -5,6 +5,7 @@ import { FoodLibraryManager } from "@/components/food-library-manager";
 import { getAdminContext } from "@/lib/auth/admin-context";
 
 export const metadata: Metadata = { title: "Food library" };
+export const dynamic = "force-dynamic";
 
 export default async function FoodLibraryPage() {
   const context = await getAdminContext();

@@ -5,6 +5,7 @@ import { SchoolSettings } from "@/components/school-settings";
 import { getAdminContext } from "@/lib/auth/admin-context";
 
 export const metadata: Metadata = { title: "School settings" };
+export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
   const context = await getAdminContext();

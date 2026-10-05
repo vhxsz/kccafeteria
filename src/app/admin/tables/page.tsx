@@ -7,6 +7,7 @@ import { getAdminContext } from "@/lib/auth/admin-context";
 export const metadata: Metadata = {
   title: "Tables and tags",
 };
+export const dynamic = "force-dynamic";
 
 export default async function TablesPage() {
   const context = await getAdminContext();
