@@ -7,6 +7,16 @@ test("home exposes the menu and student voting entry points", async ({ page }) =
   await expect(page.getByRole("heading", { name: "See what's on the menu." })).toBeVisible();
   await expect(page.getByRole("link", { name: /View this week's menu/ })).toHaveAttribute("href", "/menu");
   await expect(page.getByRole("link", { name: /Preview student voting/ })).toHaveAttribute("href", "/site/rate/tag14");
+  await expect(page.getByRole("link", { name: /Explore rankings/ })).toHaveAttribute("href", "/rankings");
+});
+
+test("public rankings expose grouped food and weekday data", async ({ page }) => {
+  const response = await page.goto("/rankings?sort=votes");
+  expect(response?.status()).toBe(200);
+  await expect(page.getByRole("heading", { name: "Food rankings" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Most voted foods" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Best days of the week" })).toBeVisible();
+  await expect(page.getByText("Groups with fewer than 3 ratings are hidden")).toBeVisible();
 });
 
 test("the public weekly menu loads real cafeteria data", async ({ page }) => {
@@ -28,6 +38,8 @@ test("retired routes and protected pages redirect safely", async ({ page }) => {
   await expect(page).toHaveURL(/\/login$/);
   await page.goto("/admin/reviews");
   await expect(page).toHaveURL(/\/login\?next=%2Fadmin%2Freviews$/);
+  await page.goto("/admin/insights");
+  await expect(page).toHaveURL(/\/login\?next=%2Fadmin%2Finsights$/);
 });
 
 test("admin APIs reject anonymous access", async ({ request }) => {

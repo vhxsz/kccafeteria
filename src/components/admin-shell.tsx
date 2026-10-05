@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   CalendarDays,
+  ChartNoAxesCombined,
   ClipboardList,
   Home,
   LayoutDashboard,
@@ -18,6 +19,7 @@ const navigation = [
   { label: "Overview", icon: LayoutDashboard, href: "/admin" },
   { label: "Weekly planner", icon: CalendarDays, href: "/admin/schedule" },
   { label: "Reviews", icon: MessageSquareText, href: "/admin/reviews" },
+  { label: "Insights", icon: ChartNoAxesCombined, href: "/admin/insights" },
   { label: "Food library", icon: ClipboardList, href: "/admin/food" },
   { label: "Tables & tags", icon: Tags, href: "/admin/tables" },
   { label: "Settings", icon: Settings, href: "/admin/settings" },
@@ -81,7 +83,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             </Link>
           </div>
           <nav className="flex gap-2 overflow-x-auto px-5 pb-3 lg:hidden" aria-label="Mobile admin navigation">
-            {navigation.slice(0, 6).map((item) => (
+            {navigation.map((item) => (
               <Link
                 key={item.label}
                 href={item.href}

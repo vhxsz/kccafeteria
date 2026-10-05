@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { CalendarDays, ChevronLeft, Clock3, Leaf, List, Star } from "lucide-react";
+import { CalendarDays, ChevronLeft, Clock3, List, Star, Trophy } from "lucide-react";
 import type { StudentMenuDay, StudentWeekMenu } from "@/lib/cafeteria/types";
 
 function formatDay(date: string, format: "short" | "long") {
@@ -121,13 +121,13 @@ export function StudentMenu({ menu }: { menu: StudentWeekMenu }) {
               <p className="font-bold">{menu.schoolName}</p>
               <p className="text-xs text-white/60">{menu.cafeteriaName}</p>
             </div>
-            <span className="grid h-10 w-10 place-items-center rounded-xl bg-tomato"><Leaf size={19} /></span>
+            <Link href="/rankings" className="grid h-10 w-10 place-items-center rounded-full bg-white/10" aria-label="Food rankings"><Trophy size={19} /></Link>
           </div>
           <div className="mt-9 flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
             <div>
               <p className="text-sm font-bold uppercase tracking-[.16em] text-sun">Student menu</p>
               <h1 className="mt-2 text-4xl font-bold tracking-[-0.045em] sm:text-5xl">What&apos;s cooking this week?</h1>
-              <p className="mt-3 max-w-xl text-white/65">Browse breakfast, lunch, and dinner from Monday through Sunday.</p>
+              <p className="mt-3 max-w-xl text-white/65">Browse breakfast, lunch, and dinner from Monday through Sunday. <Link href="/rankings" className="font-bold text-white underline underline-offset-4">See student favorites</Link>.</p>
             </div>
             <div className="flex rounded-full bg-white/10 p-1">
               <button onClick={() => setView("day")} className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold ${view === "day" ? "bg-white text-ink" : "text-white"}`}><List size={16} /> Day</button>

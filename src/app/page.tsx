@@ -6,6 +6,7 @@ import {
   Clock3,
   QrCode,
   Star,
+  Trophy,
 } from "lucide-react";
 import { BrandMark } from "@/components/brand-mark";
 
@@ -28,6 +29,7 @@ export default function Home() {
             <a href="#vote" className="transition hover:text-moss">
               Vote
             </a>
+            <Link href="/rankings" className="transition hover:text-moss">Rankings</Link>
           </div>
         </nav>
       </header>
@@ -93,6 +95,16 @@ export default function Home() {
               </div>
             </div>
           </div>
+        </div>
+      </section>
+
+      <section className="border-b border-ink/10 bg-white">
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-5 py-14 sm:px-8 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-start gap-4">
+            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-sun/50 text-moss"><Trophy size={24} /></span>
+            <div><p className="text-xs font-bold uppercase tracking-[.16em] text-moss">Community favorites</p><h2 className="mt-1 text-3xl font-bold tracking-tight">Which foods do students love?</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-ink/60">Explore the most-voted dishes, highest ratings, and best days of the week. Results are grouped to protect student privacy.</p></div>
+          </div>
+          <Link href="/rankings" className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-moss px-6 py-3.5 text-sm font-bold text-white transition hover:bg-tomato">Explore rankings <ArrowRight size={17} /></Link>
         </div>
       </section>
 
