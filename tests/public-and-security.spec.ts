@@ -32,11 +32,12 @@ test("the public weekly menu loads real cafeteria data", async ({ page }) => {
   await expect(page.getByLabel("Back to home")).toHaveAttribute("href", "/");
 });
 
-test("an active table tag opens the rating experience", async ({ page }) => {
+test("an active table tag requires school Google sign-in before rating", async ({ page }) => {
   const response = await page.goto("/site/rate/tag14");
   expect(response?.status()).toBe(200);
-  await expect(page).toHaveTitle(/Rate your meal/);
-  await expect(page.getByText("Kingsway College").first()).toBeVisible();
+  await expect(page).toHaveURL(/\/student\/login\?next=%2Fsite%2Frate%2Ftag14$/);
+  await expect(page).toHaveTitle(/Student sign in/);
+  await expect(page.getByRole("button", { name: "Continue with Kingsway Google" })).toBeVisible();
 });
 
 test("retired routes and protected pages redirect safely", async ({ page }) => {
@@ -74,7 +75,7 @@ test("public feedback rejects malformed data without writing", async ({ request 
   expect(response.status()).toBe(400);
 });
 
-test("valid feedback shape reaches database validation without writing", async ({ request }) => {
+test("valid feedback requires a signed-in school Google account", async ({ request }) => {
   const response = await request.post("/api/reviews", {
     data: {
       tagCode: "nonexistent-test-tag",
@@ -86,6 +87,12 @@ test("valid feedback shape reaches database validation without writing", async (
       idempotencyKey: "00000000-0000-4000-8000-000000000001",
     },
   });
-  expect(response.status()).toBe(409);
-  await expect(response.json()).resolves.toMatchObject({ code: "stale_menu" });
+  expect(response.status()).toBe(401);
+  await expect(response.json()).resolves.toMatchObject({ code: "sign_in_required" });
+});
+
+test("OAuth callback rejects requests without an authorization code", async ({ request }) => {
+  const response = await request.get("/auth/callback?next=https://attacker.example", { maxRedirects: 0 });
+  expect(response.status()).toBe(307);
+  expect(response.headers().location).toContain("/student/login?next=%2Fsite%2Frate%2Ftag14&error=sign_in_failed");
 });

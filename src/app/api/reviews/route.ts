@@ -1,6 +1,6 @@
-import { createHash } from "node:crypto";
 import { NextRequest } from "next/server";
 import { z } from "zod";
+import { isKingswayGoogleStudent } from "@/lib/auth/student";
 import { createClient } from "@/lib/supabase/server";
 import { exceedsContentLength, rejectCrossOrigin } from "@/lib/security/request";
 
@@ -43,20 +43,21 @@ export async function POST(request: NextRequest) {
   }
 
   const supabase = await createClient();
-
-  const forwardedFor = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
-  const anonymousSignal = `${forwardedFor || "unknown"}:${request.headers.get("user-agent") || "unknown"}`;
-  const secret = process.env.REVIEW_HASH_SECRET;
-  if (!secret || secret.length < 32) {
-    console.error("REVIEW_HASH_SECRET must contain at least 32 characters.");
-    return Response.json({ error: "Feedback is temporarily unavailable." }, { status: 503 });
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return Response.json(
+      { error: "Sign in with your Kingsway College Google account to vote.", code: "sign_in_required" },
+      { status: 401 },
+    );
+  }
+  if (!isKingswayGoogleStudent(user)) {
+    return Response.json(
+      { error: "Only verified @kingsway.college Google accounts can vote.", code: "school_account_required" },
+      { status: 403 },
+    );
   }
 
-  const anonymousHash = createHash("sha256")
-    .update(secret + ":" + anonymousSignal)
-    .digest("hex");
-
-  const { error } = await supabase.rpc("submit_public_review", {
+  const { error } = await supabase.rpc("submit_verified_review", {
     p_tag_code: parsed.data.tagCode.toLowerCase(),
     p_menu_id: parsed.data.menuId,
     p_overall_rating: parsed.data.overallRating,
@@ -64,14 +65,19 @@ export async function POST(request: NextRequest) {
     p_tag_names: parsed.data.tags,
     p_comment: parsed.data.comment || null,
     p_idempotency_key: parsed.data.idempotencyKey,
-    p_anonymous_hash: anonymousHash,
   });
 
   if (error) {
-    if (error.message.includes("review_limit_reached")) {
+    if (error.message.includes("review_already_submitted") || error.code === "23505") {
       return Response.json(
         { error: "You have already submitted feedback for this meal.", code: "review_limit_reached" },
-        { status: 429 },
+        { status: 409 },
+      );
+    }
+    if (error.message.includes("school_google_login_required")) {
+      return Response.json(
+        { error: "Sign in with your Kingsway College Google account to vote.", code: "school_account_required" },
+        { status: 403 },
       );
     }
     if (
@@ -83,12 +89,6 @@ export async function POST(request: NextRequest) {
           error: "The menu changed while this page was open. Refresh the page and try again.",
           code: "stale_menu",
         },
-        { status: 409 },
-      );
-    }
-    if (error.message.includes("duplicate key")) {
-      return Response.json(
-        { error: "This feedback has already been submitted.", code: "duplicate_review" },
         { status: 409 },
       );
     }

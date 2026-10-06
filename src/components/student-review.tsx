@@ -7,12 +7,12 @@ import {
   ChevronLeft,
   Clock3,
   Info,
-  Leaf,
   LoaderCircle,
   Send,
   Star,
 } from "lucide-react";
 import Link from "next/link";
+import { StudentSignOut } from "@/components/student-sign-out";
 import type { TableExperience } from "@/lib/cafeteria/types";
 
 const feedbackTags = [
@@ -189,20 +189,8 @@ export function StudentReview({ experience }: { experience: TableExperience }) {
             Your meal and individual item ratings are private and ready for the
             cafeteria team.
           </p>
-          <button
-            type="button"
-            onClick={() => {
-              setRating(0);
-              setSelectedItemIds([]);
-              setItemRatings({});
-              setSelectedTags([]);
-              setComment("");
-              setSubmitted(false);
-            }}
-            className="mt-8 w-full rounded-full bg-ink px-6 py-3.5 font-bold text-white transition hover:bg-moss"
-          >
-            Back to today&apos;s menu
-          </button>
+          <Link href="/menu" className="mt-8 inline-block w-full rounded-full bg-ink px-6 py-3.5 font-bold text-white transition hover:bg-moss">View the weekly menu</Link>
+          <div className="mt-5 flex justify-center"><StudentSignOut next={`/site/rate/${experience.tagCode}`} /></div>
         </section>
       </main>
     );
@@ -225,9 +213,7 @@ export function StudentReview({ experience }: { experience: TableExperience }) {
               {experience.cafeteriaName} · Table {experience.tableNumber}
             </p>
           </div>
-          <span className="grid h-10 w-10 place-items-center rounded-xl bg-tomato text-white">
-            <Leaf size={19} fill="currentColor" strokeWidth={1.5} />
-          </span>
+          <StudentSignOut next={`/site/rate/${experience.tagCode}`} />
         </div>
       </header>
 

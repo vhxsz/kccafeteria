@@ -124,15 +124,15 @@ export default function Home() {
 
           <div>
             <p className="max-w-2xl text-lg leading-8 text-white/75">
-              Scan the QR code or tap the NFC tag on your table. Choose only the
-              food and drinks you had, rate each item, and leave an optional note
-              for the cafeteria team.
+              Scan the QR code or tap the NFC tag on your table, then sign in
+              with your @kingsway.college Google account. Choose what you ate,
+              rate each item, and share one review per meal.
             </p>
             <ol className="mt-8 grid overflow-hidden rounded-[1.75rem] border border-white/20 bg-white/20 sm:grid-cols-3">
               {[
                 ["01", "Open your table tag"],
-                ["02", "Select what you ate"],
-                ["03", "Send your rating"],
+                ["02", "Sign in with school Google"],
+                ["03", "Rate what you ate"],
               ].map(([number, label]) => (
                 <li key={number} className="border-b border-white/15 bg-moss p-5 last:border-b-0 sm:border-b-0 sm:border-r sm:last:border-r-0">
                   <span className="text-xs font-bold tracking-[.16em] text-white/50">{number}</span>

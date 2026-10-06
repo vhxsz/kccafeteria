@@ -162,7 +162,7 @@ export function StudentMenu({ menu }: { menu: StudentWeekMenu }) {
         </div>
 
         <div className="mt-7 flex flex-col items-center justify-between gap-4 rounded-3xl bg-sun/30 p-6 text-center sm:flex-row sm:text-left">
-          <div><p className="font-bold">Eating now?</p><p className="mt-1 text-sm text-ink/55">Scan the QR code or NFC tag at your table to rate the meal.</p></div>
+          <div><p className="font-bold">Eating now?</p><p className="mt-1 text-sm text-ink/55">Scan the QR code or NFC tag at your table, then sign in with your school Google account to rate the meal.</p></div>
           <Link href="/" className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-bold text-white"><Star size={16} /> Back to home</Link>
         </div>
       </div>
