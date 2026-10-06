@@ -95,6 +95,8 @@ export function RankingsDashboard({ rankings, audience, period, sort, basePath, 
     ? b.votes - a.votes || b.averageRating - a.averageRating || a.name.localeCompare(b.name)
     : b.averageRating - a.averageRating || b.votes - a.votes || a.name.localeCompare(b.name));
   const visibleFoods = detailed ? foods : foods.slice(0, foodLimit);
+  const canExpandFoods = !detailed && foods.length > 5;
+  const expandLabel = foods.length >= 10 ? "Show top 10" : `Show all ${foods.length}`;
   const weekdayMap = new Map(rankings.weekdays.map((day) => [day.weekday, day]));
   const weekdayRanks = new Map(rankings.weekdays.map((day, index) => [day.weekday, index + 1]));
   const bestWeekday = rankings.weekdays[0];
@@ -140,7 +142,7 @@ export function RankingsDashboard({ rankings, audience, period, sort, basePath, 
             <div>
               <div className="flex items-center gap-2 text-moss"><Trophy size={20} /><span className="text-xs font-black uppercase tracking-[.15em]">Student favorites</span></div>
               <h2 className="mt-2 text-2xl font-bold">{sort === "votes" ? "Most voted foods" : "Highest-rated foods"}</h2>
-              {!detailed ? <p className="mt-1 text-xs text-ink/50">Top {foodLimit} · {foods.length} qualifying {foods.length === 1 ? "food" : "foods"} available</p> : null}
+              {!detailed ? <p className="mt-1 text-xs text-ink/50">Showing {visibleFoods.length} of {foods.length} qualifying {foods.length === 1 ? "food" : "foods"} · At least 3 item votes required</p> : null}
             </div>
             <div className="flex rounded-full border border-ink/10 bg-white p-1 text-xs font-bold">
               <Link href={`${basePath}${query(period, "rating", detailed ? undefined : foodLimit)}`} className={`rounded-full px-3 py-2 ${sort === "rating" ? "bg-moss text-white" : "text-ink/55"}`}>Best rated</Link>
@@ -151,7 +153,7 @@ export function RankingsDashboard({ rankings, audience, period, sort, basePath, 
             {visibleFoods.length ? visibleFoods.map((food, index) => <FoodCard key={food.id} food={food} rank={index + 1} detailed={detailed} />)
               : <div className="rounded-3xl border border-dashed border-ink/15 bg-white p-10 text-center text-sm text-ink/55">No food has enough ratings in this period yet.</div>}
           </div>
-          {!detailed ? <Link href={`${basePath}${query(period, sort, foodLimit === 5 ? 10 : 5)}`} className="mt-5 inline-flex items-center gap-2 rounded-full border border-ink/15 bg-white px-5 py-3 text-sm font-bold text-moss shadow-sm transition hover:border-moss/40 hover:bg-cream">{foodLimit === 5 ? "Show top 10" : "Show top 5"} <ArrowRight size={16} className={foodLimit === 10 ? "rotate-180" : ""} /></Link> : null}
+          {canExpandFoods ? <Link href={`${basePath}${query(period, sort, foodLimit === 5 ? 10 : 5)}`} className="mt-5 inline-flex items-center gap-2 rounded-full border border-ink/15 bg-white px-5 py-3 text-sm font-bold text-moss shadow-sm transition hover:border-moss/40 hover:bg-cream">{foodLimit === 5 ? expandLabel : "Show top 5"} <ArrowRight size={16} className={foodLimit === 10 ? "rotate-180" : ""} /></Link> : null}
         </section>
 
         <div className="space-y-6">
