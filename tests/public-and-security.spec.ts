@@ -17,6 +17,12 @@ test("public rankings expose grouped food and weekday data", async ({ page }) =>
   await expect(page.getByRole("heading", { name: "Most voted foods" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Best days of the week" })).toBeVisible();
   await expect(page.getByText("Groups with fewer than 3 ratings are hidden")).toBeVisible();
+  await expect(page.getByText(/Top 5 · \d+ qualifying/)).toBeVisible();
+  await page.getByRole("link", { name: /Show top 10/ }).click();
+  await expect(page).toHaveURL(/\/rankings\?sort=votes&top=10$/);
+  await expect(page.getByText(/Top 10 · \d+ qualifying/)).toBeVisible();
+  await page.getByRole("link", { name: /Show top 5/ }).click();
+  await expect(page).toHaveURL(/\/rankings\?sort=votes$/);
 });
 
 test("the public weekly menu loads real cafeteria data", async ({ page }) => {
