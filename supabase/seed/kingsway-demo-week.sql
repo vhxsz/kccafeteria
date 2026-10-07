@@ -8,6 +8,8 @@ declare
   target_school_id uuid;
   target_cafeteria_id uuid;
   target_timezone text;
+  target_table_id uuid;
+  local_today date;
   week_start date;
   service_day date;
   period_record record;
@@ -45,6 +47,19 @@ begin
   update public.cafeterias
   set name = 'Main cafeteria', active = true
   where id = target_cafeteria_id;
+
+  -- Attach demo feedback to a real table when one exists. The seed also works
+  -- before tables/tags have been created, in which case this remains null.
+  select t.id
+  into target_table_id
+  from public.cafeteria_tables t
+  where t.school_id = target_school_id
+    and t.cafeteria_id = target_cafeteria_id
+    and t.active = true
+  order by t.display_name
+  limit 1;
+
+  local_today := (now() at time zone coalesce(target_timezone, 'America/Toronto'))::date;
 
   insert into public.meal_periods (
     school_id, cafeteria_id, name, starts_at, ends_at, sort_order, active
@@ -216,6 +231,133 @@ begin
         on f.school_id = target_school_id and lower(f.name) = lower(choices.name);
     end loop;
   end loop;
+
+  -- A small feedback vocabulary makes the ranking and analytics screens useful
+  -- straight after seeding. Existing school-specific tags are left untouched.
+  insert into public.feedback_tags (school_id, name, sentiment, category)
+  values
+    (target_school_id, 'Tasty', 'positive', 'taste'),
+    (target_school_id, 'Fresh', 'positive', 'freshness'),
+    (target_school_id, 'Good temperature', 'positive', 'temperature'),
+    (target_school_id, 'Good portion', 'positive', 'portion'),
+    (target_school_id, 'Too cold', 'negative', 'temperature'),
+    (target_school_id, 'Too salty', 'negative', 'seasoning'),
+    (target_school_id, 'Small portion', 'negative', 'portion'),
+    (target_school_id, 'Needs more variety', 'negative', 'variety')
+  on conflict (school_id, name) do nothing;
+
+  -- Insert exactly 200 deterministic, clearly-labelled demo reviews for meals
+  -- that have already occurred this week.  They use no auth user or email, so
+  -- they cannot be mistaken for student accounts or interfere with one-vote
+  -- enforcement. The deterministic idempotency key makes this safe to rerun.
+  with served_menus as (
+    select
+      m.id as menu_id,
+      m.meal_period_id,
+      row_number() over (order by m.service_date, p.sort_order) - 1 as menu_index,
+      count(*) over () as menu_count
+    from public.menus m
+    join public.meal_periods p on p.id = m.meal_period_id
+    where m.school_id = target_school_id
+      and m.cafeteria_id = target_cafeteria_id
+      and m.published = true
+      and m.service_date <= local_today
+  ), review_source as (
+    select
+      sample.number as sample_number,
+      served.menu_id,
+      served.meal_period_id,
+      case
+        when sample.number % 29 = 0 then 2
+        when sample.number % 11 = 0 then 3
+        when sample.number % 4 = 0 then 4
+        else 5
+      end::smallint as overall_rating,
+      case sample.number % 6
+        when 0 then '[Demo feedback] Great flavour and a good portion.'
+        when 1 then '[Demo feedback] Fresh, filling, and well prepared.'
+        when 2 then '[Demo feedback] Would happily choose this again.'
+        when 3 then '[Demo feedback] Good meal; serving temperature could be better.'
+        else null
+      end as comment
+    from generate_series(1, 200) as sample(number)
+    join served_menus served
+      on served.menu_index = ((sample.number - 1) % served.menu_count)
+  )
+  insert into public.reviews (
+    school_id, cafeteria_id, table_id, meal_period_id, menu_id, user_id,
+    anonymous_identifier_hash, overall_rating, comment, status,
+    idempotency_key, created_at
+  )
+  select
+    target_school_id,
+    target_cafeteria_id,
+    target_table_id,
+    source.meal_period_id,
+    source.menu_id,
+    null,
+    md5('mealup-demo-review:' || source.sample_number::text),
+    source.overall_rating,
+    source.comment,
+    'published'::public.review_status,
+    (
+      substr(md5('mealup-demo-review:' || source.sample_number::text), 1, 8) || '-' ||
+      substr(md5('mealup-demo-review:' || source.sample_number::text), 9, 4) || '-' ||
+      substr(md5('mealup-demo-review:' || source.sample_number::text), 13, 4) || '-' ||
+      substr(md5('mealup-demo-review:' || source.sample_number::text), 17, 4) || '-' ||
+      substr(md5('mealup-demo-review:' || source.sample_number::text), 21, 12)
+    )::uuid,
+    now() - ((201 - source.sample_number)::text || ' minutes')::interval
+  from review_source source
+  on conflict (school_id, idempotency_key) do nothing;
+
+  -- Give every dish in each demo review item-level ratings too. This powers the
+  -- detailed food rankings while the aggregate review remains realistic.
+  insert into public.review_items (
+    school_id, review_id, food_item_id, rating, taste_rating,
+    temperature_rating, portion_rating, appearance_rating
+  )
+  select
+    review.school_id,
+    review.id,
+    item.food_item_id,
+    greatest(1, least(5, review.overall_rating + case item.sort_order % 3 when 0 then -1 when 1 then 0 else 1 end))::smallint,
+    greatest(1, least(5, review.overall_rating + case item.sort_order % 2 when 0 then -1 else 0 end))::smallint,
+    greatest(1, least(5, review.overall_rating + case item.sort_order % 4 when 0 then -1 else 0 end))::smallint,
+    greatest(1, least(5, review.overall_rating + case item.sort_order % 5 when 0 then -1 else 0 end))::smallint,
+    greatest(1, least(5, review.overall_rating))::smallint
+  from public.reviews review
+  join public.menu_items item on item.menu_id = review.menu_id
+  where review.school_id = target_school_id
+    and review.cafeteria_id = target_cafeteria_id
+    and review.user_id is null
+    and exists (
+      select 1 from generate_series(1, 200) as sample(number)
+      where review.anonymous_identifier_hash = md5('mealup-demo-review:' || sample.number::text)
+    )
+  on conflict (review_id, food_item_id) do nothing;
+
+  insert into public.review_tags (review_id, tag_id, school_id)
+  select
+    review.id,
+    tag.id,
+    review.school_id
+  from public.reviews review
+  join public.feedback_tags tag
+    on tag.school_id = review.school_id
+    and tag.name = case
+      when review.overall_rating >= 5 then 'Tasty'
+      when review.overall_rating = 4 then 'Fresh'
+      when review.overall_rating = 3 then 'Good portion'
+      else 'Too cold'
+    end
+  where review.school_id = target_school_id
+    and review.cafeteria_id = target_cafeteria_id
+    and exists (
+      select 1 from generate_series(1, 200) as sample(number)
+      where review.anonymous_identifier_hash = md5('mealup-demo-review:' || sample.number::text)
+    )
+  on conflict do nothing;
 end;
 $$;
 
