@@ -11,6 +11,7 @@ import {
   MessageSquareText,
   Settings,
   Tags,
+  UsersRound,
 } from "lucide-react";
 import { BrandMark } from "@/components/brand-mark";
 
@@ -20,6 +21,7 @@ const navigation = [
   { label: "Weekly planner", icon: CalendarDays, href: "/admin/schedule" },
   { label: "Reviews", icon: MessageSquareText, href: "/admin/reviews" },
   { label: "Insights", icon: ChartNoAxesCombined, href: "/admin/insights" },
+  { label: "Users", icon: UsersRound, href: "/admin/users" },
   { label: "Food library", icon: ClipboardList, href: "/admin/food" },
   { label: "Tables & tags", icon: Tags, href: "/admin/tables" },
   { label: "Settings", icon: Settings, href: "/admin/settings" },
