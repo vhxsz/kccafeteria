@@ -45,11 +45,15 @@ export default async function AdminUsersPage() {
     context.supabase.from("schools").select("timezone").eq("id", context.schoolId).single(),
     context.supabase.rpc("get_school_users_with_latest_review"),
   ]);
-  if (schoolResult.error || usersResult.error) {
+  if (schoolResult.error) {
     throw new Error("User activity could not be loaded.");
   }
 
   const timezone = schoolResult.data?.timezone || "America/Toronto";
+  // A deployment can reach Vercel before its accompanying Supabase migration
+  // has been run. Keep the staff shell usable and explain the missing setup
+  // instead of throwing a production Server Components error.
+  const usersLoadError = usersResult.error;
   const users = (usersResult.data || []) as SchoolUser[];
   const students = users.filter((user) => user.role === "student");
   const voters = users.filter((user) => user.vote_count > 0);
@@ -90,7 +94,14 @@ export default async function AdminUsersPage() {
             </div>
             <span className="w-fit rounded-full bg-tomato/10 px-3 py-1.5 text-sm font-bold text-tomato">{users.length} total</span>
           </div>
-          {users.length ? (
+          {usersLoadError ? (
+            <div className="px-6 py-12 sm:px-7">
+              <h3 className="font-bold">User activity needs one database update</h3>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-ink/55">
+                Run the latest MealUp migration in Supabase SQL Editor, then refresh this page. No student data is exposed until the staff-only directory has been installed.
+              </p>
+            </div>
+          ) : users.length ? (
             <div className="divide-y divide-ink/8">
               {users.map((user) => (
                 <article key={user.user_id} className="grid gap-4 px-5 py-5 sm:px-7 xl:grid-cols-[minmax(220px,1fr)_150px_150px_minmax(300px,1.5fr)] xl:items-center">
