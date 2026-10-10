@@ -2,170 +2,76 @@ import Link from "next/link";
 import {
   ArrowRight,
   CalendarDays,
-  Check,
-  Clock3,
+  ChevronRight,
+  CircleHelp,
+  Medal,
   QrCode,
   Star,
-  Trophy,
+  UtensilsCrossed,
 } from "lucide-react";
 import { BrandMark } from "@/components/brand-mark";
 
-const menuDetails = [
-  "Breakfast, lunch, and dinner",
-  "Monday through Sunday",
-  "Ingredients and allergen details",
+const actions = [
+  { href: "/menu", eyebrow: "This week", title: "See the menu", description: "Today’s meals, serving times, ingredients, and allergens.", icon: CalendarDays, className: "bg-moss text-white", iconClassName: "bg-white/15 text-white", copyClassName: "text-white/70", arrowClassName: "bg-white text-moss" },
+  { href: "/rankings", eyebrow: "Student picks", title: "Explore rankings", description: "Discover the meals and days students rate highest.", icon: Medal, className: "bg-sun text-ink", iconClassName: "bg-white text-tomato", copyClassName: "text-ink/60", arrowClassName: "bg-white text-moss" },
+  { href: "#how-to-vote", eyebrow: "Have your say", title: "Rate a meal", description: "Use the QR or NFC tag at your table after your meal.", icon: Star, className: "bg-white text-ink ring-1 ring-ink/8", iconClassName: "bg-sage/35 text-moss", copyClassName: "text-ink/60", arrowClassName: "bg-moss text-white" },
 ];
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-white text-ink">
-      <header className="border-b border-ink/10 bg-white">
-        <nav className="mx-auto flex w-full max-w-6xl items-center justify-between px-5 py-5 sm:px-8">
+    <main className="min-h-screen bg-[#faf8f9] text-ink">
+      <header className="border-b border-ink/8 bg-white/85 backdrop-blur-xl">
+        <nav className="mx-auto flex w-full max-w-5xl items-center justify-between px-5 py-4 sm:px-8">
           <BrandMark />
-          <div className="hidden items-center gap-7 text-sm font-semibold text-ink/65 md:flex">
-            <a href="#menu" className="transition hover:text-moss">
-              Menu
-            </a>
-            <a href="#vote" className="transition hover:text-moss">
-              Vote
-            </a>
-            <Link href="/rankings" className="transition hover:text-moss">Rankings</Link>
+          <div className="flex items-center gap-1 sm:gap-4">
+            <Link href="/rankings" className="rounded-full px-3 py-2 text-sm font-bold text-ink/60 transition hover:bg-sun hover:text-moss sm:px-4">Rankings</Link>
+            <Link href="/menu" className="rounded-full bg-moss px-4 py-2.5 text-sm font-bold text-white shadow-[0_8px_18px_rgba(133,0,29,.16)] transition hover:bg-tomato">Menu</Link>
           </div>
         </nav>
       </header>
 
-      <section id="menu" className="border-b border-ink/10 bg-[#f8f4f5]">
-        <div className="mx-auto grid w-full max-w-6xl gap-10 px-5 py-16 sm:px-8 sm:py-24 lg:grid-cols-[1.1fr_.9fr] lg:items-center lg:py-28">
-          <div>
-            <p className="text-sm font-bold uppercase tracking-[.16em] text-moss">
-              Kingsway College · Main cafeteria
-            </p>
-            <h1 className="mt-5 max-w-3xl text-5xl font-bold leading-[1.02] tracking-[-0.055em] sm:text-6xl lg:text-7xl">
-              See what&apos;s on the menu.
-            </h1>
-            <p className="mt-6 max-w-2xl text-lg leading-8 text-ink/65">
-              Check the full seven-day cafeteria schedule, including serving times,
-              ingredients, allergens, and dietary information.
-            </p>
-            <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-              <Link
-                href="/menu"
-                className="inline-flex items-center justify-center gap-2 rounded-full bg-moss px-7 py-4 text-sm font-bold text-white shadow-[0_10px_30px_rgba(133,0,29,.18)] transition hover:-translate-y-0.5 hover:bg-tomato"
-              >
-                View this week&apos;s menu <ArrowRight size={17} aria-hidden="true" />
-              </Link>
-              <a
-                href="#vote"
-                className="inline-flex items-center justify-center gap-2 rounded-full border border-ink/15 bg-white px-7 py-4 text-sm font-bold shadow-sm transition hover:border-moss hover:text-moss"
-              >
-                Rate a meal <Star size={17} aria-hidden="true" />
-              </a>
-            </div>
+      <div className="mx-auto w-full max-w-5xl px-5 pb-12 pt-8 sm:px-8 sm:pb-16 sm:pt-12">
+        <section className="relative overflow-hidden rounded-[2rem] bg-moss px-6 py-9 text-white shadow-[0_20px_55px_rgba(72,0,17,.20)] sm:rounded-[2.5rem] sm:px-10 sm:py-12">
+          <div className="absolute -right-12 -top-14 h-48 w-48 rounded-full bg-white/8" />
+          <div className="absolute bottom-[-5rem] right-16 h-44 w-44 rounded-full border-[22px] border-white/8" />
+          <div className="relative max-w-2xl">
+            <p className="inline-flex items-center gap-2 rounded-full bg-white/12 px-3 py-1.5 text-xs font-bold uppercase tracking-[.13em] text-white/80"><UtensilsCrossed size={14} /> Kingsway College cafeteria</p>
+            <h1 className="mt-5 text-4xl font-bold tracking-[-0.055em] sm:text-5xl">Food decisions, made easy.</h1>
+            <p className="mt-4 max-w-xl text-base leading-7 text-white/75 sm:text-lg">Check what&apos;s being served, share a quick review, and see what the Kingsway community is enjoying.</p>
           </div>
+        </section>
 
-          <div className="overflow-hidden rounded-[2.25rem] border border-ink/10 bg-white/95 shadow-[0_24px_70px_rgba(36,9,16,.10)] backdrop-blur-xl">
-            <div className="flex items-center justify-between border-b border-ink/10 px-6 py-5 sm:px-8">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[.16em] text-moss">
-                  Student menu
-                </p>
-                <p className="mt-1 text-xl font-bold">Current week</p>
-              </div>
-              <CalendarDays size={26} className="text-moss" aria-hidden="true" />
-            </div>
-            <div className="px-6 py-7 sm:px-8">
-              <ul className="space-y-4">
-                {menuDetails.map((detail) => (
-                  <li key={detail} className="flex items-center gap-3 text-sm font-semibold">
-                    <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-sun text-moss">
-                      <Check size={14} strokeWidth={3} aria-hidden="true" />
-                    </span>
-                    {detail}
-                  </li>
-                ))}
-              </ul>
-              <div className="mt-7 border-t border-ink/10 pt-6">
-                <Link
-                  href="/menu"
-                  className="flex items-center justify-between gap-4 font-bold text-moss hover:text-tomato"
-                >
-                  Open the weekly schedule
-                  <ArrowRight size={18} aria-hidden="true" />
-                </Link>
-              </div>
-            </div>
+        <section className="mt-6" aria-labelledby="start-here">
+          <div className="mb-4 flex items-end justify-between gap-4"><div><p className="text-sm font-bold text-tomato">Start here</p><h2 id="start-here" className="mt-1 text-2xl font-bold tracking-[-0.035em]">What would you like to do?</h2></div><span className="hidden text-sm text-ink/45 sm:block">MealUp for students</span></div>
+          <div className="grid gap-4 md:grid-cols-3">
+            {actions.map((action) => {
+              const Icon = action.icon;
+              return <Link key={action.title} href={action.href} className={`group flex min-h-60 flex-col rounded-[1.75rem] p-6 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-lg ${action.className}`}>
+                <span className={`grid h-11 w-11 place-items-center rounded-2xl ${action.iconClassName}`}><Icon size={21} /></span>
+                <p className={`mt-6 text-xs font-bold uppercase tracking-[.14em] ${action.copyClassName}`}>{action.eyebrow}</p>
+                <h3 className="mt-2 text-2xl font-bold tracking-[-0.035em]">{action.title}</h3>
+                <p className={`mt-2 max-w-xs text-sm leading-6 ${action.copyClassName}`}>{action.description}</p>
+                <span className={`mt-auto flex h-9 w-9 items-center justify-center rounded-full transition group-hover:translate-x-1 ${action.arrowClassName}`}><ArrowRight size={17} /></span>
+              </Link>;
+            })}
           </div>
-        </div>
-      </section>
+        </section>
 
-      <section className="border-b border-ink/10 bg-white">
-        <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-5 py-14 sm:px-8 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex items-start gap-4">
-            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-sun/50 text-moss"><Trophy size={24} /></span>
-            <div><p className="text-xs font-bold uppercase tracking-[.16em] text-moss">Community favorites</p><h2 className="mt-1 text-3xl font-bold tracking-tight">Which foods do students love?</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-ink/60">Explore the most-voted dishes, highest ratings, and best days of the week. Results are grouped to protect student privacy.</p></div>
+        <section id="how-to-vote" className="mt-6 rounded-[2rem] border border-ink/8 bg-white p-6 shadow-sm sm:p-8">
+          <div className="grid gap-7 md:grid-cols-[auto_1fr_auto] md:items-center">
+            <div className="grid h-14 w-14 place-items-center rounded-2xl bg-sun text-moss"><QrCode size={27} /></div>
+            <div><p className="text-sm font-bold text-tomato">Voting at the cafeteria</p><h2 className="mt-1 text-2xl font-bold tracking-[-0.035em]">Rate only what you ate.</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-ink/60">Scan your table&apos;s QR code or tap its NFC tag. Sign in with your Kingsway Google account, select your meal items, and leave one review per meal.</p></div>
+            <Link href="/site/rate/tag14" className="inline-flex w-fit items-center gap-2 rounded-full bg-moss px-5 py-3 text-sm font-bold text-white transition hover:bg-tomato">Open voting <ChevronRight size={17} /></Link>
           </div>
-          <Link href="/rankings" className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-moss px-6 py-3.5 text-sm font-bold text-white transition hover:bg-tomato">Explore rankings <ArrowRight size={17} /></Link>
-        </div>
-      </section>
+        </section>
 
-      <section id="vote" className="bg-moss text-white">
-        <div className="mx-auto grid w-full max-w-6xl gap-12 px-5 py-16 sm:px-8 sm:py-20 lg:grid-cols-[.8fr_1.2fr] lg:items-start">
-          <div>
-            <div className="grid h-12 w-12 place-items-center rounded-2xl border border-white/25 bg-white/5">
-              <QrCode size={24} aria-hidden="true" />
-            </div>
-            <p className="mt-7 text-sm font-bold uppercase tracking-[.16em] text-white/65">
-              Student feedback
-            </p>
-            <h2 className="mt-3 text-4xl font-bold tracking-[-0.04em] sm:text-5xl">
-              Had a meal today?
-            </h2>
-          </div>
+        <section className="mt-6 grid gap-4 sm:grid-cols-2">
+          <Link href="/rankings" className="group rounded-[1.75rem] bg-sun p-6 transition hover:-translate-y-0.5 hover:shadow-md"><div className="flex items-start justify-between gap-4"><div><p className="text-sm font-bold text-tomato">Community feedback</p><h2 className="mt-1 text-xl font-bold tracking-[-0.03em]">What&apos;s popular right now?</h2></div><Medal className="text-tomato" /></div><p className="mt-3 text-sm leading-6 text-ink/60">See top-rated meals, most-voted dishes, and the best days of the week.</p><span className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-moss">View rankings <ArrowRight size={16} className="transition group-hover:translate-x-1" /></span></Link>
+          <Link href="/menu" className="group rounded-[1.75rem] border border-ink/8 bg-white p-6 transition hover:-translate-y-0.5 hover:shadow-md"><div className="flex items-start justify-between gap-4"><div><p className="text-sm font-bold text-tomato">Plan ahead</p><h2 className="mt-1 text-xl font-bold tracking-[-0.03em]">Browse the full week</h2></div><CalendarDays className="text-moss" /></div><p className="mt-3 text-sm leading-6 text-ink/60">Every meal from Monday to Sunday, with serving times and dietary details.</p><span className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-moss">Open weekly menu <ArrowRight size={16} className="transition group-hover:translate-x-1" /></span></Link>
+        </section>
 
-          <div>
-            <p className="max-w-2xl text-lg leading-8 text-white/75">
-              Scan the QR code or tap the NFC tag on your table, then sign in
-              with your @kingsway.college Google account. Choose what you ate,
-              rate each item, and share one review per meal.
-            </p>
-            <ol className="mt-8 grid overflow-hidden rounded-[1.75rem] border border-white/20 bg-white/20 sm:grid-cols-3">
-              {[
-                ["01", "Open your table tag"],
-                ["02", "Sign in with school Google"],
-                ["03", "Rate what you ate"],
-              ].map(([number, label]) => (
-                <li key={number} className="border-b border-white/15 bg-moss p-5 last:border-b-0 sm:border-b-0 sm:border-r sm:last:border-r-0">
-                  <span className="text-xs font-bold tracking-[.16em] text-white/50">{number}</span>
-                  <p className="mt-2 font-bold">{label}</p>
-                </li>
-              ))}
-            </ol>
-            <Link
-              href="/site/rate/tag14"
-              className="mt-8 inline-flex items-center gap-2 rounded-full bg-white px-6 py-3.5 text-sm font-bold text-moss shadow-[0_12px_35px_rgba(36,9,16,.16)] transition hover:-translate-y-0.5 hover:bg-sun"
-            >
-              Preview student voting <ArrowRight size={17} aria-hidden="true" />
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      <footer className="bg-white">
-        <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-5 py-8 text-sm text-ink/50 sm:flex-row sm:items-center sm:justify-between sm:px-8">
-          <p className="font-semibold text-ink/70">MealUp at Kingsway College</p>
-          <div className="flex flex-col gap-3 sm:items-end">
-            <p className="inline-flex items-center gap-2">
-              <Clock3 size={15} aria-hidden="true" /> Menu information is maintained by cafeteria staff.
-            </p>
-            <Link
-              href="/login"
-              className="w-fit text-xs text-ink/35 underline decoration-ink/20 underline-offset-4 transition hover:text-moss"
-            >
-              Staff? Sign in
-            </Link>
-          </div>
-        </div>
-      </footer>
+        <footer className="mt-10 flex flex-col gap-4 border-t border-ink/8 pt-7 text-sm text-ink/45 sm:flex-row sm:items-center sm:justify-between"><p className="flex items-center gap-2"><CircleHelp size={16} /> Ask cafeteria staff if you need help finding your table tag.</p><Link href="/login" className="w-fit text-xs font-semibold text-ink/40 underline decoration-ink/20 underline-offset-4 transition hover:text-moss">Staff? Sign in</Link></footer>
+      </div>
     </main>
   );
 }
