@@ -23,7 +23,7 @@ export default async function StudentLoginPage({ searchParams }: {
     <p className="mt-4 leading-7 text-ink/60">Use your school Google account ending in <strong>@kingsway.college</strong>. One review is allowed per person for each meal.</p>
     {params.error ? <p role="alert" className="mt-5 rounded-xl bg-red-50 p-4 text-sm font-semibold text-red-700">{params.error === "school_account_required" ? "Only verified @kingsway.college Google accounts can vote." : "Sign-in could not be completed. Please try again."}</p> : null}
     <StudentGoogleLogin next={next} />
-    <p className="mt-6 text-center text-xs leading-5 text-ink/45">Your email is used to prevent duplicate votes. It is not shown in public rankings.</p>
+    <p className="mt-6 text-center text-xs leading-5 text-ink/45">Your school account confirms you are a student and allows one vote per meal. Public rankings never show names, and staff reports show feedback without your name. <Link href="/privacy" className="font-semibold underline underline-offset-2">How your data is used</Link></p>
     <Link href="/menu" className="mt-7 block text-center text-sm font-bold text-moss hover:underline">View the menu without signing in</Link>
   </div>;
 }
