@@ -61,7 +61,7 @@ export default function Home() {
           <div className="grid gap-7 md:grid-cols-[auto_1fr_auto] md:items-center">
             <div className="grid h-14 w-14 place-items-center rounded-2xl bg-sun text-moss"><QrCode size={27} /></div>
             <div><p className="text-sm font-bold text-tomato">Voting at the cafeteria</p><h2 className="mt-1 text-2xl font-bold tracking-[-0.035em]">Rate only what you ate.</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-ink/60">Scan your table&apos;s QR code or tap its NFC tag. Sign in with your Kingsway Google account, select your meal items, and leave one review per meal.</p></div>
-            <Link href="/site/rate/tag14" className="inline-flex w-fit items-center gap-2 rounded-full bg-moss px-5 py-3 text-sm font-bold text-white transition hover:bg-tomato">Open voting <ChevronRight size={17} /></Link>
+            <Link href="/menu" className="inline-flex w-fit items-center gap-2 rounded-full bg-moss px-5 py-3 text-sm font-bold text-white transition hover:bg-tomato">See today&apos;s menu <ChevronRight size={17} /></Link>
           </div>
         </section>
 

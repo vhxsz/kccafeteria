@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { CalendarDays, MessageSquareText, Star, TrendingUp, UtensilsCrossed } from "lucide-react";
 import { AdminShell } from "@/components/admin-shell";
 import { getAdminContext } from "@/lib/auth/admin-context";
+import { getPublicTag } from "@/lib/cafeteria/public-tag";
 
 export const metadata: Metadata = { title: "Overview" };
 export const dynamic = "force-dynamic";
@@ -48,6 +49,7 @@ function addDays(date: Date, amount: number) {
 export default async function AdminDashboard() {
   const context = await getAdminContext();
   if (!context) redirect("/login?next=/admin");
+  const previewTag = await getPublicTag();
 
   const [schoolResult, reviewsResult, mealsResult, tablesResult] = await Promise.all([
     context.supabase.from("schools").select("name, timezone").eq("id", context.schoolId).single(),
@@ -147,9 +149,11 @@ export default async function AdminDashboard() {
             <h1 className="mt-1 text-3xl font-bold tracking-[-0.04em] sm:text-4xl">Cafeteria overview</h1>
             <p className="mt-2 text-ink/50">Live feedback for {schoolResult.data.name}.</p>
           </div>
-          <Link href="/site/rate/tag14" className="inline-flex items-center justify-center rounded-full border border-ink/10 bg-white px-5 py-3 text-sm font-bold shadow-sm">
-            Preview student view
-          </Link>
+          {previewTag ? (
+            <Link href={`/site/rate/${previewTag}`} className="inline-flex items-center justify-center rounded-full border border-ink/10 bg-white px-5 py-3 text-sm font-bold shadow-sm">
+              Preview student view
+            </Link>
+          ) : null}
         </div>
 
         <section className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
