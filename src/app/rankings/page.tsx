@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import { BrandMark } from "@/components/brand-mark";
 import { RankingsDashboard } from "@/components/rankings-dashboard";
+import { getPublicTag } from "@/lib/cafeteria/public-tag";
 import { getSchoolRankings, parseRankingPeriod, parseRankingSort } from "@/lib/rankings";
 
 export const metadata: Metadata = {
@@ -20,7 +21,9 @@ export default async function PublicRankingsPage({ searchParams }: {
   const period = parseRankingPeriod(params.days);
   const sort = parseRankingSort(params.sort);
   const foodLimit = params.top === "10" ? 10 : 5;
-  const rankings = await getSchoolRankings(process.env.NEXT_PUBLIC_DEFAULT_MENU_TAG || "tag14", period, "public");
+  const publicTag = await getPublicTag();
+  if (!publicTag) notFound();
+  const rankings = await getSchoolRankings(publicTag, period, "public");
   if (!rankings) notFound();
 
   return <main className="min-h-screen bg-[#f8f6f7] text-ink">

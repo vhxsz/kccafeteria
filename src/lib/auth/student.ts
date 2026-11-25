@@ -12,5 +12,5 @@ export function isKingswayGoogleStudent(user: User | null | undefined): user is 
 export function safeStudentDestination(value: string | null | undefined) {
   return value && /^\/site\/rate\/[a-z0-9_-]{3,64}$/i.test(value)
     ? value
-    : "/site/rate/tag14";
+    : "/";
 }
