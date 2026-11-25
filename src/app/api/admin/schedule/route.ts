@@ -13,10 +13,14 @@ const mealTimeSchema = z
     message: "Meal end time must be after its start time.",
   });
 const saveSchema = z.object({
-  schedule: z.record(
-    z.string().regex(datePattern),
-    z.record(z.string(), z.array(z.uuid()).max(30)),
-  ),
+  schedule: z
+    .record(
+      z.string().regex(datePattern),
+      z.record(z.string(), z.array(z.uuid()).max(30)),
+    )
+    .refine((value) => Object.keys(value).length <= 14, {
+      message: "Save at most two weeks at a time.",
+    }),
   mealTimes: z.record(
     z.string().regex(datePattern),
     z.record(z.string(), mealTimeSchema),
@@ -120,69 +124,25 @@ export async function PUT(request: Request) {
   const parsed = saveSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return Response.json({ error: "Invalid schedule data." }, { status: 400 });
 
-  const { data: mealPeriods, error: mealError } = await context.supabase
-    .from("meal_periods")
-    .select("id, name, starts_at, ends_at")
-    .eq("school_id", context.schoolId)
-    .eq("cafeteria_id", context.cafeteriaId)
-    .eq("active", true);
-  if (mealError) {
-    console.error("Unable to load meal periods:", mealError.message);
-    return Response.json({ error: "The schedule could not be saved." }, { status: 500 });
-  }
-
-  for (const [serviceDate, meals] of Object.entries(parsed.data.schedule)) {
-    for (const mealPeriod of mealPeriods) {
-      const dishIds = meals[mealPeriod.name] || [];
-      const customTime = parsed.data.mealTimes[serviceDate]?.[mealPeriod.name];
-      const { data: menu, error: menuError } = await context.supabase
-        .from("menus")
-        .upsert(
-          {
-            school_id: context.schoolId,
-            cafeteria_id: context.cafeteriaId,
-            meal_period_id: mealPeriod.id,
-            service_date: serviceDate,
-            service_starts_at: customTime?.startsAt || mealPeriod.starts_at,
-            service_ends_at: customTime?.endsAt || mealPeriod.ends_at,
-            published: dishIds.length > 0,
-          },
-          { onConflict: "cafeteria_id,meal_period_id,service_date" },
-        )
-        .select("id")
-        .single();
-      if (menuError) {
-        console.error("Unable to save menu:", menuError.message);
-        return Response.json({ error: "The schedule could not be saved." }, { status: 500 });
-      }
-
-      const { error: deleteError } = await context.supabase
-        .from("menu_items")
-        .delete()
-        .eq("menu_id", menu.id)
-        .eq("school_id", context.schoolId);
-      if (deleteError) {
-        console.error("Unable to replace menu items:", deleteError.message);
-        return Response.json({ error: "The schedule could not be saved." }, { status: 500 });
-      }
-
-      if (dishIds.length) {
-        const { error: insertError } = await context.supabase
-          .from("menu_items")
-          .insert(
-            dishIds.map((foodItemId, index) => ({
-              menu_id: menu.id,
-              food_item_id: foodItemId,
-              school_id: context.schoolId,
-              sort_order: index,
-            })),
-          );
-        if (insertError) {
-          console.error("Unable to save menu items:", insertError.message);
-          return Response.json({ error: "The schedule could not be saved." }, { status: 500 });
-        }
-      }
+  // One database transaction: a failure leaves the previous week untouched and
+  // students never see a half-saved meal.
+  const { error } = await context.supabase.rpc("save_week_schedule", {
+    p_cafeteria_id: context.cafeteriaId,
+    p_schedule: parsed.data.schedule,
+    p_meal_times: parsed.data.mealTimes,
+  });
+  if (error) {
+    console.error("Unable to save schedule:", error.message);
+    if (error.message.includes("unknown_dish")) {
+      return Response.json(
+        { error: "A dish in this week is no longer in the food library. Refresh and try again." },
+        { status: 409 },
+      );
     }
+    if (error.message.includes("invalid_meal_time")) {
+      return Response.json({ error: "Each meal must end after it starts." }, { status: 400 });
+    }
+    return Response.json({ error: "The schedule could not be saved." }, { status: 500 });
   }
 
   return Response.json({ saved: true });

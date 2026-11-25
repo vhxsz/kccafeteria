@@ -361,24 +361,20 @@ begin
 end;
 $$;
 
--- Promote an EXISTING Supabase Auth user. This creates no password and never
--- exposes credentials. Change the email if you use a different admin account.
-insert into public.profiles (id, school_id, role, display_name, active)
-select u.id, s.id, 'school_admin'::public.app_role,
-  coalesce(nullif(u.raw_user_meta_data ->> 'display_name', ''), 'MealUp administrator'), true
-from auth.users u
-cross join lateral (
-  select id from public.schools where active = true order by created_at limit 1
-) s
-where lower(u.email) = 'admtesting@gmail.com'
-on conflict (id) do update set
-  school_id = excluded.school_id,
-  role = 'school_admin'::public.app_role,
-  active = true,
-  updated_at = now();
-
-select
-  case when exists (select 1 from auth.users where lower(email) = 'admtesting@gmail.com')
-    then 'Admin ready: sign in at /login with admtesting@gmail.com.'
-    else 'Admin not changed: create admtesting@gmail.com in Supabase Authentication > Users first, then rerun the final section.'
-  end as admin_status;
+-- Staff access is never granted by this seed. To promote an EXISTING Supabase
+-- Auth user (a real staff account, not a shared test login), run this
+-- separately in the SQL Editor after replacing the placeholder email:
+--
+-- insert into public.profiles (id, school_id, role, display_name, active)
+-- select u.id, s.id, 'school_admin'::public.app_role,
+--   coalesce(nullif(u.raw_user_meta_data ->> 'display_name', ''), 'MealUp administrator'), true
+-- from auth.users u
+-- cross join lateral (
+--   select id from public.schools where active = true order by created_at limit 1
+-- ) s
+-- where lower(u.email) = 'staff.member@kingsway.college'
+-- on conflict (id) do update set
+--   school_id = excluded.school_id,
+--   role = 'school_admin'::public.app_role,
+--   active = true,
+--   updated_at = now();

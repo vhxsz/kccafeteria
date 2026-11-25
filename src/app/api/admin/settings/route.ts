@@ -4,10 +4,26 @@ import { exceedsContentLength, rejectCrossOrigin } from "@/lib/security/request"
 
 const timePattern = /^([01]\d|2[0-3]):[0-5]\d$/;
 
+// Voting computes the school's local time from this value, so an unknown
+// timezone would block every vote.
+function isKnownTimezone(value: string) {
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: value });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 const settingsSchema = z.object({
   schoolName: z.string().trim().min(2).max(120),
   cafeteriaName: z.string().trim().min(2).max(120),
-  timezone: z.string().trim().min(3).max(80),
+  timezone: z
+    .string()
+    .trim()
+    .min(3)
+    .max(80)
+    .refine(isKnownTimezone, { message: "Choose a timezone from the list, for example America/Toronto." }),
   diningArea: z.string().trim().min(2).max(80),
   mealPeriods: z
     .array(
@@ -121,6 +137,12 @@ export async function PUT(request: Request) {
   const baseError = schoolResult.error || cafeteriaResult.error || diningAreaResult.error;
   if (baseError) {
     console.error("Unable to save workspace settings:", baseError.message);
+    if (baseError.message.includes("invalid_timezone")) {
+      return Response.json(
+        { error: "Choose a timezone from the list, for example America/Toronto." },
+        { status: 400 },
+      );
+    }
     return Response.json({ error: "Settings could not be saved." }, { status: 500 });
   }
 

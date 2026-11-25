@@ -13,6 +13,10 @@ const reviewSchema = z.object({
       z.object({
         foodItemId: z.uuid(),
         rating: z.number().int().min(1).max(5),
+        taste: z.number().int().min(1).max(5).optional(),
+        temperature: z.number().int().min(1).max(5).optional(),
+        portion: z.number().int().min(1).max(5).optional(),
+        appearance: z.number().int().min(1).max(5).optional(),
       }),
     )
     .min(1)

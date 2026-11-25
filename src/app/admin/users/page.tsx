@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Clock3, ShieldCheck, Star, UsersRound, UtensilsCrossed } from "lucide-react";
+import Link from "next/link";
 import { AdminShell } from "@/components/admin-shell";
 import { getAdminContext } from "@/lib/auth/admin-context";
 
@@ -15,11 +16,8 @@ type SchoolUser = {
   joined_at: string;
   vote_count: number;
   last_vote_at: string | null;
-  last_vote_rating: number | null;
-  last_vote_comment: string | null;
   last_service_date: string | null;
   last_meal_name: string | null;
-  last_dishes: string[] | null;
 };
 
 function formatDate(value: string | null, timezone: string, includeTime = true) {
@@ -65,7 +63,8 @@ export default async function AdminUsersPage() {
         <p className="text-sm font-semibold text-tomato">School directory</p>
         <h1 className="mt-1 text-3xl font-bold tracking-[-0.04em] sm:text-4xl">Users & voting activity</h1>
         <p className="mt-2 max-w-3xl text-ink/50">
-          Kingsway accounts and their latest submitted meal feedback. This staff-only view never appears in the student experience.
+          Kingsway accounts and when they last took part. To protect students, ratings and comments are never shown next to a name here — read them anonymously in{" "}
+          <Link href="/admin/reviews" className="font-semibold text-moss underline underline-offset-4">Reviews</Link>.
         </p>
 
         <section className="mt-8 grid gap-4 sm:grid-cols-3">
@@ -117,15 +116,13 @@ export default async function AdminUsersPage() {
                     <p className="mt-2 text-sm text-ink/50">{user.vote_count} submitted vote{user.vote_count === 1 ? "" : "s"}</p>
                   </div>
                   <div>
-                    {user.last_vote_rating ? <p className="flex items-center gap-1 font-bold"><Star size={16} className="fill-tomato text-tomato" /> {user.last_vote_rating.toFixed(1)}</p> : <p className="font-semibold text-ink/35">No vote yet</p>}
+                    {user.last_vote_at ? <p className="flex items-center gap-1 font-bold"><Star size={16} className="fill-tomato text-tomato" /> Voted</p> : <p className="font-semibold text-ink/35">No vote yet</p>}
                     <p className="mt-1 text-sm text-ink/45">{formatDate(user.last_vote_at, timezone)}</p>
                   </div>
                   <div className="rounded-2xl bg-cream/80 p-4">
-                    {user.last_vote_at ? <>
-                      <p className="flex items-center gap-2 text-sm font-bold"><UtensilsCrossed size={15} className="text-tomato" /> {user.last_meal_name || "Meal"}{user.last_service_date ? ` · ${formatDate(user.last_service_date, timezone, false)}` : ""}</p>
-                      <p className="mt-2 text-sm text-ink/55">{user.last_dishes?.join(", ") || "Meal items unavailable"}</p>
-                      {user.last_vote_comment ? <p className="mt-2 text-sm leading-6 text-ink/70">“{user.last_vote_comment}”</p> : null}
-                    </> : <p className="text-sm text-ink/45">No feedback has been submitted yet.</p>}
+                    {user.last_vote_at ? (
+                      <p className="flex items-center gap-2 text-sm font-bold"><UtensilsCrossed size={15} className="text-tomato" /> Last rated: {user.last_meal_name || "Meal"}{user.last_service_date ? ` · ${formatDate(user.last_service_date, timezone, false)}` : ""}</p>
+                    ) : <p className="text-sm text-ink/45">No feedback has been submitted yet.</p>}
                   </div>
                 </article>
               ))}

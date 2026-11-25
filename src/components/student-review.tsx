@@ -4,6 +4,7 @@ import { useState } from "react";
 import {
   CalendarDays,
   Check,
+  ChevronDown,
   ChevronLeft,
   Clock3,
   Info,
@@ -25,6 +26,16 @@ const feedbackTags = [
   "Small portion",
   "Needs more variety",
 ];
+
+const detailCriteria = [
+  { key: "taste", label: "Taste" },
+  { key: "temperature", label: "Temperature" },
+  { key: "portion", label: "Portion" },
+  { key: "appearance", label: "Appearance" },
+] as const;
+
+type DetailKey = (typeof detailCriteria)[number]["key"];
+type ItemDetails = Partial<Record<DetailKey, number>>;
 
 function StarRating({
   value,
@@ -67,6 +78,8 @@ export function StudentReview({ experience }: { experience: TableExperience }) {
   const [rating, setRating] = useState(0);
   const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
   const [itemRatings, setItemRatings] = useState<Record<string, number>>({});
+  const [itemDetails, setItemDetails] = useState<Record<string, ItemDetails>>({});
+  const [openDetails, setOpenDetails] = useState<string[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [comment, setComment] = useState("");
   const [submitted, setSubmitted] = useState(false);
@@ -94,10 +107,29 @@ export function StudentReview({ experience }: { experience: TableExperience }) {
           delete next[itemId];
           return next;
         });
+        setItemDetails((details) => {
+          const next = { ...details };
+          delete next[itemId];
+          return next;
+        });
+        setOpenDetails((open) => open.filter((id) => id !== itemId));
         return current.filter((id) => id !== itemId);
       }
       return [...current, itemId];
     });
+  }
+
+  function toggleDetails(itemId: string) {
+    setOpenDetails((open) =>
+      open.includes(itemId) ? open.filter((id) => id !== itemId) : [...open, itemId],
+    );
+  }
+
+  function setDetail(itemId: string, key: DetailKey, value: number) {
+    setItemDetails((details) => ({
+      ...details,
+      [itemId]: { ...details[itemId], [key]: value },
+    }));
   }
 
   const selectedItems = experience.items.filter((item) => selectedItemIds.includes(item.id));
@@ -121,6 +153,7 @@ export function StudentReview({ experience }: { experience: TableExperience }) {
           itemRatings: selectedItemIds.map((foodItemId) => ({
             foodItemId,
             rating: itemRatings[foodItemId],
+            ...itemDetails[foodItemId],
           })),
           tags: selectedTags,
           comment,
@@ -334,11 +367,12 @@ export function StudentReview({ experience }: { experience: TableExperience }) {
             </button>
           ) : (
             <div className="mt-5 divide-y divide-ink/8">
-              {selectedItems.map((item) => (
-                <div
-                  key={item.id}
-                  className="flex flex-col justify-between gap-3 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-center"
-                >
+              {selectedItems.map((item) => {
+                const detailsOpen = openDetails.includes(item.id);
+                const detailCount = Object.keys(itemDetails[item.id] || {}).length;
+                return (
+                <div key={item.id} className="py-4 first:pt-0 last:pb-0">
+                <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
                   <div className="flex items-center gap-3">
                     <div
                       className="h-12 w-12 shrink-0 rounded-xl bg-sage/40 bg-cover bg-center"
@@ -358,7 +392,34 @@ export function StudentReview({ experience }: { experience: TableExperience }) {
                     label={"Rating for " + item.name}
                   />
                 </div>
-              ))}
+                <button
+                  type="button"
+                  aria-expanded={detailsOpen}
+                  onClick={() => toggleDetails(item.id)}
+                  className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-moss hover:underline"
+                >
+                  {detailsOpen ? "Hide details" : detailCount ? `Details (${detailCount}/4)` : "Add details"}
+                  <span className="font-normal text-ink/40">Optional</span>
+                  <ChevronDown size={14} className={"transition " + (detailsOpen ? "rotate-180" : "")} />
+                </button>
+                {detailsOpen ? (
+                  <div className="mt-3 grid gap-2 rounded-2xl bg-cream/60 p-3 sm:grid-cols-2">
+                    {detailCriteria.map((criterion) => (
+                      <div key={criterion.key} className="flex items-center justify-between gap-2">
+                        <span className="text-xs font-semibold text-ink/60">{criterion.label}</span>
+                        <StarRating
+                          compact
+                          value={itemDetails[item.id]?.[criterion.key] || 0}
+                          onChange={(value) => setDetail(item.id, criterion.key, value)}
+                          label={`${criterion.label} rating for ${item.name}`}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+                </div>
+                );
+              })}
             </div>
           )}
         </section>

@@ -61,7 +61,7 @@ export default function Home() {
           <div className="grid gap-7 md:grid-cols-[auto_1fr_auto] md:items-center">
             <div className="grid h-14 w-14 place-items-center rounded-2xl bg-sun text-moss"><QrCode size={27} /></div>
             <div><p className="text-sm font-bold text-tomato">Voting at the cafeteria</p><h2 className="mt-1 text-2xl font-bold tracking-[-0.035em]">Rate only what you ate.</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-ink/60">Scan your table&apos;s QR code or tap its NFC tag. Sign in with your Kingsway Google account, select your meal items, and leave one review per meal.</p></div>
-            <Link href="/site/rate/tag14" className="inline-flex w-fit items-center gap-2 rounded-full bg-moss px-5 py-3 text-sm font-bold text-white transition hover:bg-tomato">Open voting <ChevronRight size={17} /></Link>
+            <Link href="/menu" className="inline-flex w-fit items-center gap-2 rounded-full bg-moss px-5 py-3 text-sm font-bold text-white transition hover:bg-tomato">See today&apos;s menu <ChevronRight size={17} /></Link>
           </div>
         </section>
 
@@ -70,7 +70,7 @@ export default function Home() {
           <Link href="/menu" className="group rounded-[1.75rem] border border-ink/8 bg-white p-6 transition hover:-translate-y-0.5 hover:shadow-md"><div className="flex items-start justify-between gap-4"><div><p className="text-sm font-bold text-tomato">Plan ahead</p><h2 className="mt-1 text-xl font-bold tracking-[-0.03em]">Browse the full week</h2></div><CalendarDays className="text-moss" /></div><p className="mt-3 text-sm leading-6 text-ink/60">Every meal from Monday to Sunday, with serving times and dietary details.</p><span className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-moss">Open weekly menu <ArrowRight size={16} className="transition group-hover:translate-x-1" /></span></Link>
         </section>
 
-        <footer className="mt-10 flex flex-col gap-4 border-t border-ink/8 pt-7 text-sm text-ink/45 sm:flex-row sm:items-center sm:justify-between"><p className="flex items-center gap-2"><CircleHelp size={16} /> Ask cafeteria staff if you need help finding your table tag.</p><Link href="/login" className="w-fit text-xs font-semibold text-ink/40 underline decoration-ink/20 underline-offset-4 transition hover:text-moss">Staff? Sign in</Link></footer>
+        <footer className="mt-10 flex flex-col gap-4 border-t border-ink/8 pt-7 text-sm text-ink/45 sm:flex-row sm:items-center sm:justify-between"><p className="flex items-center gap-2"><CircleHelp size={16} /> Ask cafeteria staff if you need help finding your table tag.</p><span className="flex items-center gap-4"><Link href="/privacy" className="w-fit text-xs font-semibold text-ink/40 underline decoration-ink/20 underline-offset-4 transition hover:text-moss">Privacy</Link><Link href="/login" className="w-fit text-xs font-semibold text-ink/40 underline decoration-ink/20 underline-offset-4 transition hover:text-moss">Staff? Sign in</Link></span></footer>
       </div>
     </main>
   );
